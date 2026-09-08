@@ -147,3 +147,7 @@ The splash now plays the same approved MP4, syncs progress to playback, and clos
 ## Theme video variants
 
 Created amber and paper MP4 variants locally from the approved green clip, plus matching final-frame JPEG fallbacks. No generation API calls or credits were used. Homepage media, splash media, and splash interface follow the selected theme. All 31 Node tests and 17 theme browser checks passed, including switching all three themes, reduced-motion stills, splash playback, persisted theme, and mobile layout sizing.
+
+## Paper ink, code dust, and reader controls
+
+Changed paper video/poster ink to green. Added faint code dust limited to a 60px pointer radius, with idle fade, noninteractive canvas, and control/selection/reduced-motion suppression. Added Vim h/l browser history shortcuts and article Markdown copy/download with sample disclosure and safe embedded JSON. All 33 Node tests passed. Eight code-dust browser checks and eight navigation/Markdown checks passed, including clipboard denial fallback and mobile overflow checks. Paper final-frame artwork was visually inspected.

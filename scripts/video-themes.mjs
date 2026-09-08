@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 const assets = fileURLToPath(new URL('../public/assets/', import.meta.url));
 for (const [theme, background, ink] of [
   ['amber', [24, 19, 14], [239, 191, 112]],
-  ['paper', [238, 238, 222], [37, 46, 32]],
+  ['paper', [238, 238, 222], [45, 112, 49]],
 ]) {
   // The phosphor-green channel supplies the line/glow intensity.
   const channels = ['r', 'g', 'b'].map((channel, i) => `${channel}='${background[i]}+(${ink[i]}-${background[i]})*val/255'`).join(':');

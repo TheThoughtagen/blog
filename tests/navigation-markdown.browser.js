@@ -1,0 +1,37 @@
+async (page) => {
+  const checks = [];
+  const check = (ok, label) => { if (!ok) throw new Error(label); checks.push(label); };
+  const base = 'http://127.0.0.1:4173';
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(base + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.locator('.hero-actions a[href="/about/"]').click();
+  await page.keyboard.press('h');
+  await page.waitForURL(base + '/');
+  check(true, 'h returns to previous page');
+  await page.keyboard.press('l');
+  await page.waitForURL(base + '/about/');
+  check(true, 'l moves forward in history');
+  await page.locator('[data-vim-toggle]').click();
+  await page.keyboard.press('h');
+  check(page.url() === base + '/about/', 'Disabling Vim prevents h navigation');
+  await page.locator('[data-vim-toggle]').click();
+  await page.keyboard.press('/');
+  await page.locator('#command-input').fill('hello');
+  await page.keyboard.press('h');
+  check(page.url() === base + '/about/', 'Typing in search does not navigate');
+  await page.keyboard.press('Escape');
+  await page.goto(base + '/notes/the-factory-floor-is-not-a-staging-environment/');
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.copiedMarkdown = text; } } }));
+  await page.locator('[data-copy-markdown]').click();
+  const expected = await (await page.request.get(base + '/notes/the-factory-floor-is-not-a-staging-environment/index.md')).text();
+  check(await page.evaluate(() => window.copiedMarkdown) === expected, 'Copied Markdown equals generated download, including code');
+  check((await page.locator('.toast').textContent()).includes('copied as Markdown'), 'Copy reports success');
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('Permission denied'); } } }));
+  await page.locator('[data-copy-markdown]').click();
+  check((await page.locator('.toast').textContent()).includes('Download .md'), 'Clipboard denial points to working download');
+  await page.setViewportSize({ width: 390, height: 844 });
+  check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Article sharing controls fit mobile');
+  return { passed: checks.length, checks };
+}

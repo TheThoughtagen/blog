@@ -1,4 +1,5 @@
 import { connectGithub } from './github.js';
+import './code-dust.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -162,6 +163,7 @@ document.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openSearch(); return; }
   if ($('dialog[open]') || event.ctrlKey || event.metaKey || event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
   if (!vim) return;
+  if ((event.key === 'h' || event.key === 'l') && !event.repeat) { event.preventDefault(); history.go(event.key === 'h' ? -1 : 1); return; }
   if (event.key === '/') { event.preventDefault(); openSearch(); return; }
   if (event.key === '?') { event.preventDefault(); openDialog(helpDialog); return; }
   if (event.key === ':') { event.preventDefault(); openSearch(':'); return; }
@@ -195,3 +197,10 @@ async function copy(text, success) {
 }
 $$('[data-copy-code]').forEach((button) => button.addEventListener('click', () => copy(button.closest('.code-block').querySelector('code').textContent, 'Code example copied.')));
 $$('[data-copy-link]').forEach((button) => button.addEventListener('click', () => copy(location.origin + location.pathname, 'Article link copied.')));
+
+$$('[data-copy-markdown]').forEach(button => button.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(JSON.parse($('#article-markdown').textContent));
+    notify('Article copied as Markdown.');
+  } catch { notify('Clipboard unavailable. Use Download .md to save the article.'); }
+}));

@@ -577,3 +577,15 @@
   .welcome-replay { display: block; min-height: 44px; margin: 6px 0 0 auto; padding: 8px 0 8px 12px; color: var(--muted); font: 10px var(--mono); text-decoration: underline; text-underline-offset: 4px; }
   .welcome-replay:hover { color: var(--accent); }
 }
+
+@layer components {
+  .code-dust { position: fixed; width: 120px; height: 120px; pointer-events: none; user-select: none; z-index: 30; contain: strict; }
+}
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse), print {
+  .code-dust { display: none !important; }
+}
+
+@layer components {
+  .article-share { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+  .article-share .text-link { min-height: 44px; }
+}

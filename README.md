@@ -104,3 +104,10 @@ node --env-file=.env scripts/deploy.mjs
 Animation browser checks: `playwright-cli -s=welcome run-code --filename=tests/welcome.browser.js` with the preview server running.
 
 To regenerate amber/paper assets without AI credits, run `node scripts/video-themes.mjs` with FFmpeg installed. The approved green video is the source. Theme media checks: `playwright-cli -s=theme-video run-code --filename=tests/theme-video.browser.js`.
+
+**Reader controls**
+With Vim navigation enabled, `h` goes back and `l` goes forward in browser history. These shortcuts are inactive in text fields, dialogs, and when Vim navigation is disabled. Press `?` for the full shortcut list.
+
+Each article has **Copy Markdown** and **Download .md** controls. Exports include the title, description, source URL, date, section headings, paragraphs, code, lists, quotes, tags, and sample disclosure. The download works without JavaScript; clipboard failures point to that fallback.
+
+The cursor emits sparse code dust within a 60px radius while moving. It uses theme colors, fades within half a second, and stops over controls, while selecting text, on touch devices, or with reduced motion. The effect cannot intercept pointer input. Paper artwork uses green ink on its light background.
