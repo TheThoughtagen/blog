@@ -3,8 +3,10 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve, relative, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from './build.mjs';
+import { copyPublishedStats } from './preview-stats.mjs';
 
 await build();
+await copyPublishedStats();
 const root = fileURLToPath(new URL('../dist', import.meta.url));
 const port = Number(process.env.PORT || 4173);
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.md': 'text/markdown; charset=utf-8', '.xml': 'application/xml', '.txt': 'text/plain; charset=utf-8' };

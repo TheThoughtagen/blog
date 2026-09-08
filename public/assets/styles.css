@@ -262,6 +262,8 @@
   .lab-grid .panel-title h2 { font-size: 10px; }
   .lab-grid .empty-uplink { padding: 30px; }
   .lab-grid .empty-uplink p { font-size: 13px; max-width: 330px; }
+  .lab-grid [data-github] { max-height: 650px; overflow-y: auto; }
+  .lab-grid + .uplink-panel { margin-top: 25px; }
   .lab-grid .empty-uplink h3 { font-size: 24px; }
   .lab-principles { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 40px; border-block: 1px solid var(--line); padding: 40px 0; margin-top: 55px; }
   .lab-principles h2 { font-size: 27px; margin-top: 12px; }

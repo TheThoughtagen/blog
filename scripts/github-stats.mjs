@@ -2,6 +2,33 @@ import { writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { site } from '../site.config.mjs';
+import { parseReleases, githubUrl } from '../public/assets/github.js';
+
+export async function collectShowcase(username, request) {
+  const repos = [];
+  for (let page = 1; ; page++) {
+    const batch = await request(`users/${encodeURIComponent(username)}/repos?type=owner&per_page=100&page=${page}`);
+    if (!Array.isArray(batch)) throw new Error('Invalid repository response.');
+    repos.push(...batch.filter(repo => repo.private === false));
+    if (batch.length < 100) break;
+  }
+  const releases = [];
+  for (const repo of repos) {
+    for (let page = 1; ; page++) {
+      const batch = await request(`repos/${repo.full_name}/releases?per_page=100&page=${page}`);
+      if (!Array.isArray(batch)) throw new Error('Invalid release response.');
+      releases.push(...parseReleases(batch, repo.full_name));
+      if (batch.length < 100) break;
+    }
+  }
+  const result = await request(`search/commits?q=${encodeURIComponent(`author:${username} is:public`)}&sort=committer-date&order=desc&per_page=30`);
+  if (!Array.isArray(result.items) || result.incomplete_results) throw new Error('Incomplete commit search.');
+  const commits = result.items.filter(item => item.repository?.private === false && githubUrl(item.html_url)).map(item => ({
+    repo: item.repository.full_name, url: githubUrl(item.html_url),
+    title: item.commit.message.split('\n')[0], date: item.commit.committer.date, sha: item.sha.slice(0, 7),
+  }));
+  return { releases: releases.sort((a, b) => Date.parse(b.date) - Date.parse(a.date)), recentCommits: commits };
+}
 
 export const query = `query($login: String!) {
   user(login: $login) {
@@ -45,6 +72,14 @@ export async function syncStats() {
   });
   if (!response.ok) throw new Error(`GitHub stats request failed (${response.status}).`);
   const snapshot = statsSnapshot(await response.json(), site.github.username);
+  Object.assign(snapshot, await collectShowcase(site.github.username, async path => {
+    const response = await fetch(`https://api.github.com/${path}`, {
+      headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error(`GitHub showcase request failed (${response.status}).`);
+    return response.json();
+  }));
   await writeFile(new URL('../dist/assets/github-stats.json', import.meta.url), JSON.stringify(snapshot));
   console.log('Updated public GitHub contribution snapshot.');
 }

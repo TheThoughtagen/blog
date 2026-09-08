@@ -61,6 +61,11 @@ export async function connectGithub(config) {
   const panels = [...document.querySelectorAll('[data-github]')];
   if (!panels.length || (!config.username && !config.repositories.length)) return;
   let eventRequest;
+  let snapshotRequest;
+  const snapshot = () => snapshotRequest ||= fetch('/assets/github-stats.json').then(response => {
+    if (!response.ok) throw new Error('The GitHub snapshot is unavailable. Please try again later.');
+    return response.json();
+  });
   const events = () => eventRequest ||= requestGithub(`users/${encodeURIComponent(config.username)}/events/public?per_page=100`);
   const message = (panel, text, retry) => {
     const box = document.createElement('div'); box.className = 'github-message';
@@ -78,13 +83,14 @@ export async function connectGithub(config) {
         let items;
         let failures = 0;
         if (type === 'activity') items = parseActivity(await events(), location.pathname === '/lab/' ? 15 : 5);
+        else if (type === 'commits') items = (await snapshot()).recentCommits || [];
         else if (config.repositories.length) {
           const results = await Promise.allSettled(config.repositories.map(async (repo) => parseReleases(await requestGithub(`repos/${repo}/releases?per_page=3`), repo)));
           failures = results.filter((result) => result.status === 'rejected').length;
           if (failures === results.length) throw results[0].reason;
           items = results.flatMap((result) => result.status === 'fulfilled' ? result.value : []).sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 6);
-        } else items = (await events()).filter((event) => event?.type === 'ReleaseEvent').flatMap((event) => parseReleases([event.payload?.release || {}], event.repo?.name)).slice(0, 5);
-        if (!items.length) message(panel, type === 'activity' ? 'No recent public development activity in GitHub\'s available event window.' : 'No published releases in the configured repositories or available event window.');
+        } else items = (await snapshot()).releases || [];
+        if (!items.length) message(panel, type === 'activity' ? 'No recent public development activity in GitHub\'s available event window.' : type === 'commits' ? 'No public commits found in the latest snapshot.' : 'No published releases found in the public repositories.');
         else {
           panel.replaceChildren();
           for (const item of items) {
@@ -97,7 +103,7 @@ export async function connectGithub(config) {
         }
         if (failures) { const warning = document.createElement('p'); warning.className = 'github-message'; warning.textContent = `${failures} repository feed(s) could not be loaded. Other releases are shown.`; panel.append(warning); }
       } catch (error) {
-        message(panel, error.name === 'TimeoutError' || error.name === 'AbortError' ? 'The GitHub connection timed out.' : error.message === 'Failed to fetch' ? 'Could not reach GitHub. Check your connection and try again.' : error.message, () => { eventRequest = null; load(); });
+        message(panel, error.name === 'TimeoutError' || error.name === 'AbortError' ? 'The GitHub connection timed out.' : error.message === 'Failed to fetch' ? 'Could not reach GitHub. Check your connection and try again.' : error.message, () => { eventRequest = null; snapshotRequest = null; load(); });
       } finally { panel.removeAttribute('aria-busy'); }
     };
     load();
