@@ -33,7 +33,7 @@ for (const host of timelines) {
 }
 
 for (const host of document.querySelectorAll('[data-github-stats]')) {
-  fetch('/assets/github-stats.json').then(response => {
+  fetch('/assets/github-stats.json', { cache: 'no-store' }).then(response => {
     if (!response.ok) throw new Error('Unavailable');
     return response.json();
   }).then(stats => {

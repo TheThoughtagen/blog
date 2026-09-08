@@ -1,4 +1,5 @@
-import { mkdir, writeFile, cp, rm } from 'node:fs/promises';
+import { mkdir, writeFile, cp, rm, readFile, readdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, join } from 'node:path';
 import { site as sourceSite } from '../site.config.mjs';
@@ -179,8 +180,17 @@ export async function build() {
   await rm(dist, { recursive: true, force: true });
   await mkdir(dist, { recursive: true });
   await cp(join(root, 'public'), dist, { recursive: true });
+  const assets = join(dist, 'assets');
+  const codeFiles = (await readdir(assets)).filter(name => /\.(js|css)$/.test(name)).sort();
+  const hash = createHash('sha256');
+  for (const name of codeFiles) hash.update(name).update(await readFile(join(assets, name)));
+  const version = hash.digest('hex').slice(0, 12);
+  for (const name of codeFiles.filter(name => name.endsWith('.js'))) {
+    const code = await readFile(join(assets, name), 'utf8');
+    await writeFile(join(assets, name), code.replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`));
+  }
   const pages = [['index.html', home(site)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index)])];
-  for (const [path, html] of pages) { await mkdir(resolve(dist, path, '..'), { recursive: true }); await writeFile(join(dist, path), html); }
+  for (const [path, html] of pages) { await mkdir(resolve(dist, path, '..'), { recursive: true }); await writeFile(join(dist, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`)); }
   for (const article of articles) await writeFile(join(dist, `notes/${article.slug}/index.md`), renderMarkdown(site, article));
   await writeFile(join(dist, 'assets/data.json'), JSON.stringify({ site, articles: articles.map(({ sections, ...article }) => ({ ...article, url: notePath(article) })), externalPosts }));
   await writeFile(join(dist, 'feed.xml'), renderFeed(site, articles));

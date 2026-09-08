@@ -62,7 +62,7 @@ export async function connectGithub(config) {
   if (!panels.length || (!config.username && !config.repositories.length)) return;
   let eventRequest;
   let snapshotRequest;
-  const snapshot = () => snapshotRequest ||= fetch('/assets/github-stats.json').then(response => {
+  const snapshot = () => snapshotRequest ||= fetch('/assets/github-stats.json', { cache: 'no-store' }).then(response => {
     if (!response.ok) throw new Error('The GitHub snapshot is unavailable. Please try again later.');
     return response.json();
   });
