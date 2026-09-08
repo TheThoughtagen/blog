@@ -15,7 +15,7 @@ async (page) => {
     const r = c.getBoundingClientRect();
     return { maxAlpha: Math.max(...alpha), width: r.width, height: r.height, pointerEvents: getComputedStyle(c).pointerEvents, hiddenFromAT: c.getAttribute('aria-hidden') };
   });
-  check(stats.maxAlpha > 0 && stats.maxAlpha <= 82, 'Glyphs render at restrained opacity');
+  check(stats.maxAlpha > 0 && stats.maxAlpha <= 102, 'Glyphs render at restrained opacity');
   check(stats.width === 120 && stats.height === 120, 'Effect stays in a 120px square around pointer');
   check(stats.pointerEvents === 'none' && stats.hiddenFromAT === 'true', 'Effect cannot intercept clicks or enter accessibility tree');
   await page.waitForFunction(() => document.querySelector('.code-dust').hidden, { timeout: 2000 });

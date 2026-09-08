@@ -36,7 +36,7 @@ function draw(now) {
     const x = p.x - pointer.x + radius + p.dx * age;
     const y = p.y - pointer.y + radius + p.dy * age;
     const distance = Math.hypot(x - radius, y - radius);
-    context.globalAlpha = 0.32 * (1 - age) * Math.max(0, 1 - distance / radius);
+    context.globalAlpha = 0.40 * (1 - age) * Math.max(0, 1 - distance / radius);
     context.fillText(p.glyph, x, y);
   }
   context.restore();
