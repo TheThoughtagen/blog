@@ -37,8 +37,19 @@ for (const host of document.querySelectorAll('[data-github-stats]')) {
     if (!response.ok) throw new Error('Unavailable');
     return response.json();
   }).then(stats => {
+    const headline = document.createElement('dl'); headline.className = 'work-headline';
+    for (const [label, count, detail] of [
+      ['Total contributions', stats.total, `${(stats.total - stats.restricted).toLocaleString()} public · ${stats.restricted.toLocaleString()} private / internal`],
+      ['Total PRs · public', stats.pullRequests, 'Public pull requests opened in the past year.'],
+    ]) {
+      const item = document.createElement('div');
+      const term = document.createElement('dt'); term.textContent = label;
+      const value = document.createElement('dd'); value.textContent = count.toLocaleString();
+      const note = document.createElement('dd'); note.className = 'metric-detail'; note.textContent = detail;
+      item.append(term, value, note); headline.append(item);
+    }
     const metrics = document.createElement('dl'); metrics.className = 'work-metrics';
-    for (const [label, count] of [['Commits', stats.commits], ['Pull requests', stats.pullRequests], ['Reviews', stats.reviews], ['Issues opened', stats.issues], ['Public repos · now', stats.repositories], ['Followers · now', stats.followers]]) {
+    for (const [label, count] of [['Public commits', stats.commits], ['Public reviews', stats.reviews], ['Public issues opened', stats.issues], ['Public repos · now', stats.repositories], ['Followers · now', stats.followers]]) {
       const item = document.createElement('div');
       const term = document.createElement('dt'); term.textContent = label;
       const value = document.createElement('dd'); value.textContent = count.toLocaleString();
@@ -55,9 +66,9 @@ for (const host of document.querySelectorAll('[data-github-stats]')) {
     }
     scroll.append(calendar);
     const caption = document.createElement('p'); caption.className = 'contribution-caption';
-    caption.textContent = `${stats.total.toLocaleString()} contributions · ${stats.from.slice(0, 10)} to ${stats.to.slice(0, 10)} · Updated ${stats.updatedAt.slice(0, 10)}. Darker to brighter squares show more activity.`;
+    caption.textContent = `${stats.from.slice(0, 10)} to ${stats.to.slice(0, 10)} · Updated ${stats.updatedAt.slice(0, 10)}. Darker to brighter squares show more activity.`;
     const scope = document.createElement('p'); scope.className = 'contribution-caption';
-    scope.textContent = 'Commits, pull requests, reviews, and issues use GitHub’s contribution rules for the past year. Calendar includes anonymous private counts only when shared on the public profile. Updated on each site deployment.';
-    host.replaceChildren(metrics, scroll, caption, scope);
+    scope.textContent = 'Past-year totals follow GitHub’s contribution rules. Total contributions and the calendar include shared anonymous private / internal activity; individual work counts cover public activity. Updated on each site deployment.';
+    host.replaceChildren(headline, metrics, scroll, caption, scope);
   }).catch(() => { host.textContent = 'The contribution snapshot is unavailable. You can still see my activity on GitHub below.'; });
 }

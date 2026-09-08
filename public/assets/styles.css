@@ -315,7 +315,11 @@
   [data-x-timeline] { min-height: 1px; }
   .contribution-section { margin: 65px 0; padding: 28px; border: 1px solid var(--line); }
   .contribution-section h2 { margin: 12px 0 25px; }
-  .work-metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; margin: 0 0 28px; }
+  .work-headline { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; margin: 0 0 30px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .work-headline dt { font: 13px var(--mono); }
+  .work-headline dd { margin: 12px 0; color: var(--accent); font: clamp(40px, 5vw, 64px) var(--mono); }
+  .work-headline .metric-detail { color: var(--muted); font: 12px/1.6 var(--mono); margin-bottom: 0; }
+  .work-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin: 0 0 28px; }
   .work-metrics dd { margin: 0 0 8px; color: var(--accent); font: 30px var(--mono); }
   .work-metrics dt { font: 11px var(--mono); }
   .calendar-scroll { overflow-x: auto; padding: 4px 0 12px; }
@@ -327,6 +331,7 @@
   .contribution-day.level-4 { background: var(--accent); }
   .contribution-caption { font-size: 12px; line-height: 1.6; }
   @media (max-width: 700px) {
+    .work-headline { grid-template-columns: 1fr; gap: 24px; }
     .work-metrics { grid-template-columns: repeat(3, 1fr); }
     .contribution-section { padding: 20px; }
   }
