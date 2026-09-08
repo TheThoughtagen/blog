@@ -4,7 +4,7 @@ A static engineering notebook with sample articles, RSS, local search, keyboard 
 
 Live preview: https://awake-iris-z6ww.here.now/
 
-Published permanently to the existing here.now account. Patrick’s introduction is configured; social URLs and additional career details are awaiting confirmation. Update this existing site rather than creating a new one:
+Published permanently to the existing here.now account. Patrick’s introduction is configured; LinkedIn and X are configured; additional career details can be added to the bio. Update this existing site rather than creating a new one:
 
 ```sh
 node scripts/build.mjs
@@ -84,24 +84,21 @@ Add crossposts to the `externalPosts` array in `content/links.mjs`; these are cu
 
 Use the actual post URL and publication date. Crossposts appear on the home page and in search; RSS contains local articles only. Rebuild after configuration or content changes.
 
-**Publishing**
-When ready to publish, run tests and build first, then publish only `dist/` using the installed here.now helper:
+**Continuous Deployment**
+Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → publish `dist/` to the existing here.now site. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+
+The repository’s encrypted Actions secret `HERENOW_API_KEY` supplies authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
+
+`scripts/deploy.mjs` updates only `awake-iris-z6ww`. It includes file hashes to reuse unchanged assets, reads the live version before publishing, and sends it as `baseVersionId` to reject changes made during deployment. The repository is the source of truth; the next deployment replaces edits made directly on the host before that run. An upload failure stops before finalization, and hidden files/symlinks are rejected. The completed run summary links to the deployed site.
+
+Check runs at https://github.com/TheThoughtagen/blog/actions. If a run fails, fix the error and rerun it from GitHub Actions or push a correction to `main`. If replacing an old deployment, rerun the latest workflow rather than an older commit’s run.
+
+For manual deployment using a locally configured `HERENOW_API_KEY`:
 
 ```sh
-node --test tests/*.test.mjs
-node scripts/build.mjs
-"$HOME/.agents/skills/here-now/scripts/publish.sh" dist --client opencode
+npm test
+npm run build
+node --env-file=.env scripts/deploy.mjs
 ```
-
-The first publish returns a URL and slug. Replace `YOUR-SLUG` below with that slug, rebuild with the actual public origin, and update the same site so canonical and feed URLs are correct:
-
-```sh
-SITE_URL="https://YOUR-SLUG.here.now/" node scripts/build.mjs
-"$HOME/.agents/skills/here-now/scripts/publish.sh" dist --client opencode --slug YOUR-SLUG
-```
-
-For later updates, use those same build/update commands, or persist the origin in `site.config.mjs`. Use your actual custom-domain origin instead if applicable. Omitting `--slug` creates another site. This is a multipage site; do not enable SPA routing.
-
-The helper needs `curl`, `file`, and bundled or installed `jq`. It uses `HERENOW_API_KEY` or `~/.herenow/credentials` if available; anonymous sites expire after 24 hours. Keep API keys and local `.herenow/` state private and out of published files. See [here.now docs](https://here.now/docs) for current hosting details.
 
 Animation browser checks: `playwright-cli -s=welcome run-code --filename=tests/welcome.browser.js` with the preview server running.
