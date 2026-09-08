@@ -1,0 +1,17 @@
+@layer components {
+  .mascot {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    line-height: 0;
+  }
+
+  .mascot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+}

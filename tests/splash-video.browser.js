@@ -1,0 +1,37 @@
+async (page) => {
+  const checks = [];
+  const check = (ok, label) => { if (!ok) throw new Error(label); checks.push(label); };
+  const base = 'http://127.0.0.1:4173/';
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto(base + 'about/');
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(base);
+  await page.waitForFunction(() => document.querySelector('#boot-dialog video')?.currentTime > 0.2);
+  check(await page.locator('#boot-dialog').evaluate(d => d.open && d.classList.contains('boot-video-playing')), 'Splash plays the approved video');
+  check(await page.locator('#boot-dialog video').evaluate(v => v.muted && v.playsInline && !v.loop), 'Splash is silent and plays once inline');
+  await page.locator('#boot-dialog').waitFor({ state: 'hidden', timeout: 10000 });
+  check(await page.locator('#boot-dialog video').evaluate(v => v.ended), 'Splash waits for the thumbs-up ending before closing');
+  await page.locator('[data-reboot]').click();
+  await page.waitForFunction(() => document.querySelector('#boot-dialog video').currentTime > 0.1);
+  check(await page.locator('#boot-dialog video').evaluate(v => v.currentTime < 2), 'Replay starts from the beginning');
+  await page.keyboard.press('Escape');
+  await page.locator('#boot-dialog').waitFor({ state: 'hidden' });
+  check(await page.locator('#boot-dialog video').evaluate(v => v.paused), 'Skip stops playback');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  check(await page.locator('#boot-dialog[open]').count() === 0, 'Reduced motion bypasses automatic splash');
+  await page.locator('[data-reboot]').click();
+  check(await page.locator('#boot-dialog video').getAttribute('src') === null, 'Reduced-motion replay does not load video');
+  check(await page.locator('#boot-dialog').evaluate(d => d.scrollWidth <= innerWidth && !d.classList.contains('boot-video-playing')), 'Mobile reduced-motion splash shows still without overflow');
+  await page.keyboard.press('Escape');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.route('**/patrick-welcome.mp4', route => route.abort());
+  await page.goto(base);
+  await page.locator('#boot-dialog[open]').waitFor();
+  await page.locator('#boot-dialog').waitFor({ state: 'hidden', timeout: 6000 });
+  check(await page.locator('#boot-dialog').evaluate(d => !d.classList.contains('boot-video-playing')), 'Video failure falls back and releases the splash');
+  await page.unroute('**/patrick-welcome.mp4');
+  return { passed: checks.length, checks };
+}

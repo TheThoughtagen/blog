@@ -1,0 +1,37 @@
+# Local secrets (keep only the documented, empty template)
+.env
+.env.*
+!.env.example
+
+# Generated site and dependencies
+/dist/
+node_modules/
+
+# Animation drafts, source renders, and provider request records
+# The approved web image/video in public/assets/ remain versioned.
+/output/
+/tmp/
+
+# Local publishing and agent state
+/.herenow/
+/.dagr/
+
+# Browser sessions, screenshots, and test reports
+/.playwright-cli/
+/.playwright-mcp/
+/playwright-report/
+/test-results/
+/coverage/
+/fieldnotes-*.png
+
+# Logs and caches
+*.log
+.cache/
+
+# OS and editor temporary files
+.DS_Store
+._*
+Thumbs.db
+*.swp
+*.swo
+*~
