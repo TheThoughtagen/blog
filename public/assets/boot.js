@@ -127,6 +127,9 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden && automatic) finish(); });
   window.addEventListener('beforeprint', finish);
   motion.addEventListener('change', () => { if (motion.matches) finish(); });
-  const backForward = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
-  if (location.pathname === '/' && !location.hash && !backForward && !motion.matches && !preference('paused') && document.documentElement.dataset.paused !== 'true' && !preference('skip-intro')) start(true);
+  const navigationType = performance.getEntriesByType('navigation')[0]?.type;
+  const backForward = navigationType === 'back_forward';
+  // Reloading after clicking the notebook link should still show the intro.
+  const showOnLoad = !location.hash || navigationType === 'reload';
+  if (location.pathname === '/' && showOnLoad && !backForward && !motion.matches && !preference('paused') && document.documentElement.dataset.paused !== 'true' && !preference('skip-intro')) start(true);
 })();

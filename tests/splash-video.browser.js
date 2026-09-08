@@ -6,7 +6,9 @@ async (page) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto(base + 'about/');
   await page.evaluate(() => localStorage.clear());
-  await page.goto(base);
+  await page.goto(base + '#notebook');
+  check(await page.locator('#boot-dialog[open]').count() === 0, 'Direct notebook navigation skips splash');
+  await page.reload();
   await page.waitForFunction(() => document.querySelector('#boot-dialog video')?.currentTime > 0.2);
   check(await page.locator('#boot-dialog').evaluate(d => d.open && d.classList.contains('boot-video-playing')), 'Splash plays the approved video');
   check(await page.locator('#boot-dialog video').evaluate(v => v.muted && v.playsInline && !v.loop), 'Splash is silent and plays once inline');
