@@ -49,9 +49,10 @@ function reboot() {
 
 let vim = store.get('vim', 'true') !== 'false';
 function updateVim() {
-  const button = $('[data-vim-toggle]'); button.textContent = vim ? '-- NORMAL --' : '-- VIM OFF --';
+  const button = $('[data-vim-toggle]'); button.textContent = vim ? 'VIM: ON' : 'VIM: OFF';
   document.documentElement.dataset.vim = String(vim);
   button.setAttribute('aria-pressed', String(vim));
+  button.title = vim ? 'Turn off h/j/k/l keyboard navigation' : 'Turn on h/j/k/l keyboard navigation';
   button.setAttribute('aria-label', vim ? 'Vim navigation enabled. Click to turn off' : 'Vim navigation disabled. Click to turn on');
 }
 updateVim();

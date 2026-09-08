@@ -589,3 +589,10 @@
   .article-share { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
   .article-share .text-link { min-height: 44px; }
 }
+
+@layer components {
+  .statusbar .status-file { align-self: stretch; display: inline-flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
+  .statusbar .status-file:hover { color: var(--accent); }
+  .statusbar [data-vim-toggle]:hover { filter: brightness(1.15); }
+  .statusbar :focus-visible { outline-offset: -3px; }
+}
