@@ -20,6 +20,8 @@ function setTheme(theme, announce = true) {
   $('[data-theme-toggle]').setAttribute('aria-label', `Color theme: ${theme}. Switch to ${themes[(themes.indexOf(theme) + 1) % themes.length]}`);
   $('meta[name="theme-color"]').content = { green: '#111510', amber: '#18130e', paper: '#eeeede' }[theme];
   store.set('theme', theme);
+  $$('.mascot img').forEach(image => { image.src = window.fieldnotesArtwork().poster; });
+  document.dispatchEvent(new Event('fieldnotes:theme-change'));
   if (announce) notify(`${theme.toUpperCase()} phosphor selected${theme === 'paper' ? '. Easy on the eyes.' : '.'}`);
 }
 setTheme(document.documentElement.dataset.theme, false);

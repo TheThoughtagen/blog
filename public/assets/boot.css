@@ -1,5 +1,5 @@
 #boot-dialog {
-  --boot-green: #b6ec8c;
+  --boot-green: var(--accent);
   position: fixed;
   inset: 0;
   margin: 0;
@@ -11,34 +11,34 @@
   overflow: auto;
   border: 0;
   color: var(--boot-green);
-  background: #0b120a;
+  background: var(--bg);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  color-scheme: dark;
+  color-scheme: inherit;
 }
-#boot-dialog::backdrop { background: #0b120a; }
+#boot-dialog::backdrop { background: var(--bg); }
 #boot-dialog[open] { display: grid; place-items: center; }
 .boot-shell { width: min(1000px, calc(100% - 64px)); padding-block: 34px; position: relative; }
-.boot-topline, .boot-bottomline { display: flex; justify-content: space-between; gap: 15px; color: #82a36e; font-size: 9px; letter-spacing: .12em; }
-.boot-topline { border-bottom: 1px solid #324e25; padding-bottom: 16px; }
-.boot-heading { display: flex; align-items: center; gap: 30px; padding-block: 37px 33px; border-bottom: 1px solid #324e25; }
+.boot-topline, .boot-bottomline { display: flex; justify-content: space-between; gap: 15px; color: var(--muted); font-size: 9px; letter-spacing: .12em; }
+.boot-topline { border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+.boot-heading { display: flex; align-items: center; gap: 30px; padding-block: 37px 33px; border-bottom: 1px solid var(--line); }
 .boot-emblem { font-size: 52px; letter-spacing: -.1em; white-space: nowrap; }
-.boot-heading p { font: inherit; font-size: 9px; letter-spacing: .15em; color: #82a36e; margin-bottom: 11px; }
-.boot-heading h2 { font: inherit; font-weight: bold; font-size: clamp(29px, 5.6vw, 60px); letter-spacing: .045em; line-height: 1; color: #c4f49e; text-shadow: 0 0 25px #b6ec8c30; }
+.boot-heading p { font: inherit; font-size: 9px; letter-spacing: .15em; color: var(--muted); margin-bottom: 11px; }
+.boot-heading h2 { font: inherit; font-weight: bold; font-size: clamp(29px, 5.6vw, 60px); letter-spacing: .045em; line-height: 1; color: var(--text); text-shadow: 0 0 25px transparent; }
 .boot-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: center; gap: 25px; margin-block: 28px; min-height: 245px; }
-.boot-output { color: #b6ec8c; font: inherit; font-size: 11px; line-height: 1.9; white-space: pre-wrap; min-height: 232px; }
+.boot-output { color: var(--accent); font: inherit; font-size: 11px; line-height: 1.9; white-space: pre-wrap; min-height: 232px; }
 .boot-art { width: 100%; max-width: 100%; }
-.boot-meter { display: flex; align-items: center; gap: 20px; border-top: 1px solid #324e25; padding-top: 18px; font-size: 14px; letter-spacing: .065em; }
+.boot-meter { display: flex; align-items: center; gap: 20px; border-top: 1px solid var(--line); padding-top: 18px; font-size: 14px; letter-spacing: .065em; }
 .boot-bar { white-space: nowrap; }
-.boot-percent { margin-left: auto; color: #82a36e; font-size: 12px; }
+.boot-percent { margin-left: auto; color: var(--muted); font-size: 12px; }
 .boot-access { font-size: 11px; letter-spacing: .13em; padding-block: 18px 30px; }
 .boot-controls { display: flex; justify-content: space-between; gap: 15px; align-items: center; }
-.boot-controls label { display: flex; align-items: center; gap: 9px; font-size: 10px; color: #a0bd8c; cursor: pointer; }
-.boot-controls input { accent-color: #b6ec8c; width: 15px; height: 15px; margin: 0; }
-.boot-skip { padding: 12px 16px; border: 1px solid #68994a; color: #b6ec8c; background: #14200e; font: inherit; font-size: 11px; cursor: pointer; }
-.boot-skip span { color: #a0bd8c; font-size: 9px; margin-left: 22px; }
-.boot-skip:hover { background: #263d1c; border-color: #b6ec8c; }
-#boot-dialog :focus-visible { outline: 2px solid #b6ec8c; outline-offset: 5px; }
-.boot-bottomline { padding-top: 23px; margin-top: 24px; border-top: 1px solid #324e25; font-size: 7px; }
+.boot-controls label { display: flex; align-items: center; gap: 9px; font-size: 10px; color: var(--muted); cursor: pointer; }
+.boot-controls input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+.boot-skip { padding: 12px 16px; border: 1px solid var(--subtle); color: var(--accent); background: var(--panel); font: inherit; font-size: 11px; cursor: pointer; }
+.boot-skip span { color: var(--muted); font-size: 9px; margin-left: 22px; }
+.boot-skip:hover { background: var(--panel-strong); border-color: var(--accent); }
+#boot-dialog :focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+.boot-bottomline { padding-top: 23px; margin-top: 24px; border-top: 1px solid var(--line); font-size: 7px; }
 .boot-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media print { #boot-dialog[open] { display: none; } }
 @media (max-width: 650px) {

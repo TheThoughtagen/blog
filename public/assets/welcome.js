@@ -7,6 +7,7 @@ if (container) {
   let visible = false;
   let failed = false;
   let pending = false;
+  let playbackRun = 0;
   const blocked = () => document.hidden || Boolean(document.querySelector('dialog[open]'));
   const showStill = () => {
     video.pause();
@@ -16,15 +17,16 @@ if (container) {
   async function play() {
     if (failed || pending || blocked()) return;
     pending = true;
+    const run = ++playbackRun;
     started = true;
-    if (!video.getAttribute('src')) video.src = video.dataset.src;
+    if (!video.getAttribute('src')) video.src = window.fieldnotesArtwork().video;
     if (video.ended) video.currentTime = 0;
     video.muted = true;
     try {
       await video.play();
     } catch {
-      showStill();
-    } finally { pending = false; }
+      if (run === playbackRun) showStill();
+    } finally { if (run === playbackRun) pending = false; }
   }
   function autoPlay() {
     if (!started && visible && !blocked() && !motion.matches && document.documentElement.dataset.paused !== 'true') play();
@@ -53,6 +55,17 @@ if (container) {
     if (blocked()) video.pause();
     else autoPlay();
   };
+  document.addEventListener('fieldnotes:theme-change', () => {
+    playbackRun++;
+    showStill();
+    video.removeAttribute('src');
+    video.load();
+    pending = false;
+    started = false;
+    failed = false;
+    button.hidden = false;
+    autoPlay();
+  });
   document.addEventListener('visibilitychange', checkVisibility);
   document.addEventListener('fieldnotes:boot-open', checkVisibility);
   document.addEventListener('fieldnotes:boot-close', checkVisibility);

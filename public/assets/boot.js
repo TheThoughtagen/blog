@@ -66,6 +66,8 @@
       });
       document.body.append(dialog);
     }
+    const artwork = window.fieldnotesArtwork();
+    dialog.querySelector('.mascot img').src = artwork.poster;
     const output = dialog.querySelector('.boot-output');
     const bar = dialog.querySelector('.boot-bar');
     const percent = dialog.querySelector('.boot-percent');
@@ -100,7 +102,7 @@
       if (run !== playbackRun || !dialog.open) { video.pause(); return; }
       dialog.classList.add('boot-video-playing');
     };
-    if (!video.getAttribute('src')) video.src = '/assets/patrick-welcome.mp4';
+    if (video.getAttribute('src') !== artwork.video) video.src = artwork.video;
     video.currentTime = 0;
     video.play().catch(fallback);
     function tick(now) {

@@ -51,7 +51,7 @@ Replay from the footer's **Replay terminal boot** button or the `:reboot` comman
 **The Operator**
 The homepage and splash use the supplied `Patrick-VaultBoy-Terminal` artwork directly. `public/assets/patrick-terminal.jpg` is a byte-for-byte copy of the original 1024x572 JPEG, not an SVG reconstruction. Its green color, framing, glow, and scanlines are preserved without added filters, overlays, or cropping.
 
-The homepage plays the approved Kling animation once, after the opening intro closes and the artwork enters view. A small button pauses, resumes, or replays it. The final thumbs-up frame remains visible. Reduced-motion visitors and browsers without JavaScript see the original still; the video is only requested when playback starts. A failed download also restores the still. The illustration remains green in every theme.
+The homepage plays the approved Kling animation once, after the opening intro closes and the artwork enters view. A small button pauses, resumes, or replays it. The final thumbs-up frame remains visible. Reduced-motion visitors and browsers without JavaScript see the original still; the video is only requested when playback starts. A failed download also restores the still. Amber and paper use locally recolored versions of the same clip, with matching final-frame stills. The homepage and splash follow the selected theme; switching theme restarts the homepage animation when motion is enabled.
 
 `scripts/mascot.mjs` renders the image and `public/assets/mascot.css` provides responsive sizing. The boot reuses the same asset through its generated template. The approved clip is `public/assets/patrick-welcome.mp4` (about 563 KB), encoded from the first fal.ai Kling 2.1 Pro render. `public/assets/welcome.js` manages playback. The full render, keyframes, and generation record remain under `output/animation/`, outside the published assets. `scripts/import-artwork.mjs` imports an original JPEG without converting it or overwriting an existing asset.
 
@@ -102,3 +102,5 @@ node --env-file=.env scripts/deploy.mjs
 ```
 
 Animation browser checks: `playwright-cli -s=welcome run-code --filename=tests/welcome.browser.js` with the preview server running.
+
+To regenerate amber/paper assets without AI credits, run `node scripts/video-themes.mjs` with FFmpeg installed. The approved green video is the source. Theme media checks: `playwright-cli -s=theme-video run-code --filename=tests/theme-video.browser.js`.

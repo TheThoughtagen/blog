@@ -143,3 +143,7 @@ Added the approved first Kling render as a 563 KB H.264 MP4. Playback starts onc
 ## Splash animation
 
 The splash now plays the same approved MP4, syncs progress to playback, and closes after a brief hold on the ending. Skip pauses video; reduced motion uses the still; failed playback falls back to the timed text intro; stalled loads are bounded by an 8.5-second timeout. All 27 Node tests and nine splash browser checks passed, covering completion, replay, skip, reduced motion, mobile sizing, and failed download.
+
+## Theme video variants
+
+Created amber and paper MP4 variants locally from the approved green clip, plus matching final-frame JPEG fallbacks. No generation API calls or credits were used. Homepage media, splash media, and splash interface follow the selected theme. All 31 Node tests and 17 theme browser checks passed, including switching all three themes, reduced-motion stills, splash playback, persisted theme, and mobile layout sizing.
