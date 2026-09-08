@@ -28,6 +28,10 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Refresh public GitHub stats
+        run: node scripts/github-stats.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Publish to here.now
         run: node scripts/deploy.mjs
         env:

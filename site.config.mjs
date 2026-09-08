@@ -13,7 +13,7 @@ export const site = {
   },
   description: 'Patrick Mannion’s notebook on industrial software, reliable integrations, AI experiments, and leading technical teams.',
   siteUrl: 'https://awake-iris-z6ww.here.now/',
-  github: { username: 'TheThoughtagen', repositories: ['TheThoughtagen/blog'] },
+  github: { username: 'TheThoughtagen', repositories: [] },
   links: { linkedin: 'https://www.linkedin.com/in/mannionpatrick/', x: 'https://x.com/__pattym__', substack: '', patreon: '', booking: '', subscribe: '' },
   // Use a Buttondown username for the inline form, or links.subscribe for any provider.
   newsletter: { buttondownUsername: '' },

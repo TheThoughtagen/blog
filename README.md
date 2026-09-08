@@ -29,8 +29,10 @@ Edit `site.config.mjs`:
 
 - `name`, `author`, and `description`: notebook branding, article byline, and metadata. The author is Patrick Mannion. `bio.short` appears in the author card and About header; `bio.paragraphs` holds the longer bio.
 - `siteUrl`: public origin, such as `https://notes.example.com/`, with no subpath. The build-time `SITE_URL` environment variable overrides it. Set it for canonical/OG URLs, absolute RSS links, and the sitemap. Without it, previews omit canonical URLs and the sitemap and use relative RSS identifiers.
-- `github.username`: GitHub username only, not a profile URL. Activity uses public events; no token is needed or shipped.
+- `github.username`: GitHub username only, not a profile URL. Activity includes commits, PRs, reviews, comments, stars, forks, and other supported public events across repositories. Home shows five events; Lab shows fifteen from the latest 100 available events. This is GitHub's recent event window, not an all-time archive. No token is shipped to visitors.
 - `github.repositories`: up to six `owner/repo` strings, for example `['example-owner/project']`, not repository URLs. These drive releases independently of the username. With only a username, releases come from its available public event window. Empty settings show an unconfigured state.
+
+The contribution calendar and aggregate work totals refresh on each deployment through `scripts/github-stats.mjs`, after the build. It uses the read-only repository Actions token and publishes only numeric counts and dates in `dist/assets/github-stats.json`. Never run it with a personal token. GitHub's public calendar may include anonymous private contribution counts if the profile shares them. The totals follow GitHub's contribution rules, not every commit on every branch. Local builds show a profile-link fallback unless you copy the deployed public snapshot into `dist/assets/`. Snapshot failures stop deployment; the previous live site remains available.
 - `links.linkedin`, `links.x`, `links.substack`, and `links.patreon`: actual profile/publication/support URLs. Leave unknown links blank. Configured URLs must use HTTP(S) without embedded credentials.
 - `membership.enabled` and `membership.url`: set `enabled: true` only with a real external membership destination. Patreon and membership are outbound links; the provider handles payments and access. This site does not implement authentication or a client-side paywall. Anything included in `dist/` is public when hosted publicly, so do not put paid/private content there.
 
@@ -68,14 +70,14 @@ Edit `content/articles.mjs`. Replace the demonstration writing with actual revie
 
 Each article needs a unique lowercase hyphenated `slug`, `title`, `description`, real `YYYY-MM-DD` date, `category`, `tags` array, positive integer `readingMinutes`, and nonempty `sections`. Categories are `Industrial software`, `Development`, `Leadership`, or `AI & ML`. Sections appear in array order and require a unique lowercase hyphenated `id`, `title`, and `paragraphs` array. Optional fields are `code: { language, text }`, `list`, and `quote`. Text is escaped, not interpreted as HTML or Markdown. Keep published slugs and section IDs stable for existing links. Sample labels and the home preview notice follow the `sample` flags automatically. Update the bio in `site.config.mjs`; sample labels remain until each demonstration is replaced.
 
-Add crossposts to the `externalPosts` array in `content/links.mjs`; these are curated links, not scraping or automatic imports:
+The home and Lab pages include a lazy-loaded official X timeline with a permanent profile link if the embed is blocked. LinkedIn personal posts require curated links; the profile activity link is available until posts are added. Add crossposts to the `externalPosts` array in `content/links.mjs`; these are curated links, not scraping or automatic imports:
 
 ```js
 {
   title: 'Your published post',
   description: 'A short summary.',
   url: 'https://example.substack.com/p/your-post',
-  source: 'Substack', // Or 'LinkedIn'.
+  source: 'Substack', // Or 'LinkedIn' or 'X'.
   date: '2026-09-07',
   category: 'Development',
   tags: ['Testing'],

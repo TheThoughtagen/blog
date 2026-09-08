@@ -7,7 +7,7 @@ export function githubUrl(value, fallback = '') {
   } catch { return fallback; }
 }
 
-export function parseActivity(events) {
+export function parseActivity(events, limit = 5) {
   if (!Array.isArray(events)) return [];
   return events.flatMap((event) => {
     if (!event || typeof event !== 'object') return [];
@@ -24,10 +24,20 @@ export function parseActivity(events) {
       case 'IssuesEvent': title = `${payload.action || 'Updated'} issue: ${payload.issue?.title || 'Untitled'}`; url = githubUrl(payload.issue?.html_url, base); break;
       case 'ReleaseEvent': title = `Released ${payload.release?.tag_name || 'a new version'}`; url = githubUrl(payload.release?.html_url, base); break;
       case 'CreateEvent': title = `Created ${payload.ref_type || 'a reference'}${payload.ref ? `: ${payload.ref}` : ''}`; break;
+      case 'WatchEvent': title = 'Starred repository'; break;
+      case 'ForkEvent': title = 'Forked repository'; url = githubUrl(payload.forkee?.html_url, base); break;
+      case 'IssueCommentEvent': title = `Commented on: ${payload.issue?.title || 'an issue or pull request'}`; url = githubUrl(payload.comment?.html_url, base); break;
+      case 'PullRequestReviewEvent': title = `Reviewed pull request: ${payload.pull_request?.title || 'Untitled'}`; url = githubUrl(payload.review?.html_url, base); break;
+      case 'PullRequestReviewCommentEvent': title = 'Commented on a pull request review'; url = githubUrl(payload.comment?.html_url, base); break;
+      case 'CommitCommentEvent': title = 'Commented on a commit'; url = githubUrl(payload.comment?.html_url, base); break;
+      case 'DeleteEvent': title = `Deleted ${payload.ref_type || 'a reference'}${payload.ref ? `: ${payload.ref}` : ''}`; break;
+      case 'PublicEvent': title = 'Made repository public'; break;
+      case 'GollumEvent': title = 'Updated the wiki'; url = `${base}/wiki`; break;
+      case 'MemberEvent': title = 'Updated repository collaborators'; break;
       default: return [];
     }
     return [{ repo, title: title.charAt(0).toUpperCase() + title.slice(1), url, date: event.created_at }];
-  }).slice(0, 5);
+  }).slice(0, limit);
 }
 
 export function parseReleases(releases, repo) {
@@ -51,7 +61,7 @@ export async function connectGithub(config) {
   const panels = [...document.querySelectorAll('[data-github]')];
   if (!panels.length || (!config.username && !config.repositories.length)) return;
   let eventRequest;
-  const events = () => eventRequest ||= requestGithub(`users/${encodeURIComponent(config.username)}/events/public?per_page=30`);
+  const events = () => eventRequest ||= requestGithub(`users/${encodeURIComponent(config.username)}/events/public?per_page=100`);
   const message = (panel, text, retry) => {
     const box = document.createElement('div'); box.className = 'github-message';
     const paragraph = document.createElement('p'); paragraph.textContent = text; box.append(paragraph);
@@ -67,7 +77,7 @@ export async function connectGithub(config) {
       try {
         let items;
         let failures = 0;
-        if (type === 'activity') items = parseActivity(await events());
+        if (type === 'activity') items = parseActivity(await events(), location.pathname === '/lab/' ? 15 : 5);
         else if (config.repositories.length) {
           const results = await Promise.allSettled(config.repositories.map(async (repo) => parseReleases(await requestGithub(`repos/${repo}/releases?per_page=3`), repo)));
           failures = results.filter((result) => result.status === 'rejected').length;

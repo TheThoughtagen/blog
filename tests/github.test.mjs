@@ -7,6 +7,22 @@ const base = `https://github.com/${repo}`;
 const date = '2024-02-29T12:00:00Z';
 const event = (type, payload = {}) => ({ type, repo: { name: repo }, created_at: date, payload });
 const release = (overrides = {}) => ({ name: 'Version 1', tag_name: 'v1', html_url: `${base}/releases/tag/v1`, published_at: date, draft: false, ...overrides });
+
+test('activity includes stars, forks, comments, and reviews across public repositories', () => {
+  const items = parseActivity([
+    event('WatchEvent'),
+    { ...event('ForkEvent', { forkee: { html_url: 'https://github.com/me/fork' } }), repo: { name: 'another-owner/library' } },
+    event('IssueCommentEvent', { issue: { title: 'Fix a bug' }, comment: { html_url: 'javascript:alert(1)' } }),
+    event('PullRequestReviewEvent', { pull_request: { title: 'Add a feature' } }),
+    event('PublicEvent'), event('GollumEvent'),
+  ], 15);
+  assert.equal(items.length, 6);
+  assert.equal(items[0].title, 'Starred repository');
+  assert.equal(items[1].repo, 'another-owner/library');
+  assert.equal(items[1].url, 'https://github.com/me/fork');
+  assert.equal(items[2].url, base);
+  assert.match(items[3].title, /Reviewed pull request/);
+});
 const unsafeUrls = ['javascript:alert(1)', 'http://github.com/owner/repo', 'https://github.com.evil.example/owner/repo',
   'https://evil.example/owner/repo', 'https://github.com@evil.example/owner/repo',
   'https://user:secret@github.com/owner/repo', '//github.com/owner/repo', '/owner/repo', 'not a URL'];
@@ -24,7 +40,7 @@ test('parseActivity maps supported events and limits output after filtering', ()
     ['Closed issue: A bug', `${base}/issues/2`], ['Released v1', `${base}/releases/tag/v1`],
     ['Created branch: experiment', base],
   ].map(([title, url]) => ({ repo, title, url, date }));
-  assert.deepEqual(parseActivity([event('WatchEvent'), ...supported, event('PushEvent')]), expected);
+  assert.deepEqual(parseActivity([event('UnknownEvent'), ...supported, event('PushEvent')]), expected);
 });
 
 test('parseActivity tolerates unknown and malformed data without losing valid events', () => {

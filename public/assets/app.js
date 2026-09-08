@@ -1,5 +1,6 @@
 import { connectGithub } from './github.js';
 import './code-dust.js';
+import './social.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
