@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels } from '../scripts/build.mjs';
+import { readFile } from 'node:fs/promises';
+import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels, build } from '../scripts/build.mjs';
 import { site } from '../site.config.mjs';
 import { articles } from '../content/articles.mjs';
 import { externalPosts } from '../content/links.mjs';
@@ -14,6 +15,7 @@ function fixture() {
       links: { linkedin: 'https://www.linkedin.com/in/example/', substack: 'https://example.substack.com/', patreon: '', booking: '', subscribe: '' },
       newsletter: { buttondownUsername: '' },
       membership: { enabled: false, url: '' },
+      ignitionTools: [],
     },
     notes: [{
       slug: 'first-note', title: 'First note', description: 'A useful note.',
@@ -28,6 +30,14 @@ function fixture() {
     }],
   };
 }
+
+const expectedIgnitionTools = [
+  ['Ignition Dev Tools', 'https://thethoughtagen.github.io/ignition-ide-plugins/', 'https://github.com/TheThoughtagen/ignition-ide-plugins'],
+  ['ignition-lint', 'https://thethoughtagen.github.io/ignition-lint/', 'https://github.com/TheThoughtagen/ignition-lint'],
+  ['Ignition CLI', 'https://thethoughtagen.github.io/ignition-cli/', 'https://github.com/TheThoughtagen/ignition-cli'],
+  ['ignition-mcp', 'https://whiskeyhouse.github.io/ignition-mcp/', 'https://github.com/WhiskeyHouse/ignition-mcp'],
+  ['Ignition Git Module', 'https://whiskeyhouse.github.io/ignition-git-module/', 'https://github.com/WhiskeyHouse/ignition-git-module'],
+];
 
 test('validateContent accepts the checked-in configuration and content', () => {
   assert.doesNotThrow(() => validateContent(site, articles, externalPosts));
@@ -120,6 +130,42 @@ test('validateContent rejects unsafe crosspost links and incomplete crosspost me
     { category: 'Unknown' }, { date: '2024-02-30' },
   ]) {
     assert.throws(() => validateContent(config, notes, [{ ...links[0], ...invalid }]), /Invalid external post/, JSON.stringify(invalid));
+  }
+});
+
+test('validateContent rejects unsafe or incomplete Ignition tool destinations', () => {
+  const validTool = {
+    name: 'Ignition tool',
+    description: 'A useful Ignition development tool.',
+    documentationUrl: 'https://docs.example.com/ignition-tool/',
+    repositoryUrl: 'https://github.com/example/ignition-tool',
+  };
+  for (const invalid of [
+    { documentationUrl: 'javascript:alert(1)' },
+    { repositoryUrl: 'https://user:secret@github.com/example/ignition-tool' },
+    { documentationUrl: '/relative/docs' },
+    { name: '' },
+    { description: '' },
+  ]) {
+    const { config, notes, links } = fixture();
+    config.ignitionTools = [{ ...validTool, ...invalid }];
+    assert.throws(() => validateContent(config, notes, links), /Invalid Ignition tool/, JSON.stringify(invalid));
+  }
+});
+
+test('build publishes five safe Ignition tool cards and indexes their documentation for command search', async () => {
+  await build();
+  const lab = await readFile(new URL('../dist/lab/index.html', import.meta.url), 'utf8');
+  const searchIndex = JSON.parse(await readFile(new URL('../dist/assets/data.json', import.meta.url), 'utf8'));
+
+  assert.match(lab, /<section class="ignition-tools"[^>]+aria-labelledby="ignition-tools-title"/);
+  assert.equal((lab.match(/class="ignition-project-card"/g) || []).length, 5);
+  assert.deepEqual(searchIndex.ignitionTools.map(({ name, documentationUrl, repositoryUrl }) => [name, documentationUrl, repositoryUrl]), expectedIgnitionTools);
+
+  for (const [name, documentationUrl, repositoryUrl] of expectedIgnitionTools) {
+    assert.ok(lab.includes(`>${name}</h3>`), `${name} card heading`);
+    assert.match(lab, new RegExp(`href="${documentationUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" target="_blank" rel="noopener noreferrer"`));
+    assert.match(lab, new RegExp(`href="${repositoryUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" target="_blank" rel="noopener noreferrer"`));
   }
 });
 
