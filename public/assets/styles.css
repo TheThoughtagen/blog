@@ -257,6 +257,18 @@
   .lab-glyph small, .about-mark small { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; display: block; color: var(--subtle); }
   .lab-status { display: flex; align-items: center; gap: 10px; padding: 16px 0; border-block: 1px solid var(--line); font-family: var(--mono); font-size: 10px; color: var(--muted); }
   .lab-status > span:last-child { margin-left: auto; color: var(--subtle); font-size: 8px; }
+  .ignition-tools { margin: 55px 0 65px; }
+  .ignition-tools-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; margin-bottom: 25px; }
+  .ignition-tools-heading h2 { font-size: 36px; margin-top: 12px; }
+  .ignition-tools-heading > p { max-width: 480px; font-size: 13px; line-height: 1.8; }
+  .ignition-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .ignition-project-card { display: flex; flex-direction: column; min-width: 0; min-height: 260px; padding: 25px; border: 1px solid var(--line); background: var(--panel); }
+  .ignition-project-number { overflow-wrap: anywhere; color: var(--subtle); font: 8px/1.6 var(--mono); letter-spacing: .045em; }
+  .ignition-project-card h3 { margin-top: 18px; font-size: 25px; }
+  .ignition-project-card > p { margin: 14px 0 24px; font-size: 12px; line-height: 1.8; }
+  .ignition-project-card nav { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: auto; }
+  .ignition-project-card nav a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--accent); font: 10px var(--mono); }
+  .ignition-project-card nav a:hover { text-decoration: underline; }
   .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 30px; }
   .lab-grid .panel-title { padding: 16px 20px; }
   .lab-grid .panel-title h2 { font-size: 10px; }
@@ -414,6 +426,7 @@
     .secondary-header { grid-template-columns: minmax(0, 1fr) 200px; gap: 25px; }
     .secondary-header h1 { font-size: 52px; }
     .about-grid { grid-template-columns: minmax(0, 1fr) 260px; gap: 30px; }
+    .ignition-project-card { min-height: 280px; }
     .lab-principles { gap: 22px; }
     .lab-principles h2 { font-size: 25px; }
   }
@@ -525,6 +538,12 @@
     .lab-glyph, .about-mark { display: none; }
     .lab-status { font-size: 8px; flex-wrap: wrap; }
     .lab-status > span:last-child { margin-left: 16px; flex-basis: 100%; font-size: 7px; }
+    .ignition-tools { margin: 38px 0 45px; }
+    .ignition-tools-heading { display: block; margin-bottom: 20px; }
+    .ignition-tools-heading h2 { font-size: 30px; }
+    .ignition-tools-heading > p { margin-top: 15px; }
+    .ignition-project-grid { grid-template-columns: 1fr; gap: 13px; }
+    .ignition-project-card { min-height: 0; padding: 21px; }
     .lab-grid { grid-template-columns: 1fr; }
     .lab-grid .empty-uplink { padding: 23px; }
     .lab-grid .panel-title > span { display: inline; }
