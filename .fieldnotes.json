@@ -1,0 +1,4 @@
+{
+  "frontmatterSchema": "frontmatter.schema.json",
+  "localAssetPolicy": "document-directory"
+}

@@ -1,19 +1,22 @@
-import { mkdir, writeFile, cp, rm, readFile, readdir } from 'node:fs/promises';
+import { mkdir, writeFile, cp, rm, readFile, readdir, realpath, lstat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { resolve, join } from 'node:path';
+import { resolve, join, relative, isAbsolute, dirname, basename, sep } from 'node:path';
 import { site as sourceSite } from '../site.config.mjs';
-import { articles } from '../content/articles.mjs';
 import { externalPosts } from '../content/links.mjs';
 import { renderMascot } from './mascot.mjs';
-import { renderMarkdown } from './markdown.mjs';
+import { loadPosts, publishedPosts, selectFeatured, tagSlug } from './posts.mjs';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
+const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 export const categories = ['Industrial software', 'Development', 'Leadership', 'AI & ML'];
 export const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const e = escapeHtml;
 const notePath = (article) => `/notes/${article.slug}/`;
-const dateLabel = (date) => new Intl.DateTimeFormat('en', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
+const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dateLabel = (date) => {
+  const instant = new Date(`${date}T12:00:00Z`);
+  return `${String(instant.getUTCDate()).padStart(2, '0')} ${shortMonths[instant.getUTCMonth()]} ${instant.getUTCFullYear()}`;
+};
 export function validWebUrl(value) {
   try {
     const url = new URL(value);
@@ -37,17 +40,12 @@ export function validateContent(site, notes, links) {
   }
   const slugs = new Set();
   const dateIsValid = (date) => /^\d{4}-\d{2}-\d{2}$/.test(date) && new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) === date;
-  if (!notes.length || notes.filter((note) => note.featured).length !== 1) throw new Error('Provide notes and exactly one featured note.');
+  if (notes.filter((note) => note.featured).length > 1) throw new Error('Provide at most one featured note.');
   for (const note of notes) {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(note.slug) || slugs.has(note.slug)) throw new Error('Article slugs must be unique, lowercase, and URL-safe.');
     slugs.add(note.slug);
     if (!note.title || !note.description || !categories.includes(note.category) || !dateIsValid(note.date)) throw new Error(`Invalid metadata: ${note.slug}`);
-    if (!Array.isArray(note.tags) || !Number.isInteger(note.readingMinutes) || note.readingMinutes < 1 || !note.sections?.length) throw new Error(`Invalid article: ${note.slug}`);
-    const ids = new Set();
-    for (const section of note.sections) {
-      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(section.id) || ids.has(section.id) || !section.title || !Array.isArray(section.paragraphs)) throw new Error(`Invalid section: ${note.slug}`);
-      ids.add(section.id);
-    }
+    if (!Array.isArray(note.tags) || !Number.isInteger(note.readingMinutes) || note.readingMinutes < 1) throw new Error(`Invalid article: ${note.slug}`);
   }
   for (const link of links) {
     if (!validWebUrl(link.url) || !link.title || !link.description || !['LinkedIn', 'Substack', 'X'].includes(link.source) || !categories.includes(link.category) || !dateIsValid(link.date)) throw new Error('Invalid external post.');
@@ -92,7 +90,7 @@ function shell(site, { title, description = site.description, path = '/', active
 <html lang="en" data-theme="green">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#111510"><title>${e(pageTitle)}</title><meta name="description" content="${e(description)}">
 <meta property="og:title" content="${e(pageTitle)}"><meta property="og:description" content="${e(description)}"><meta property="og:type" content="${article ? 'article' : 'website'}">${absolute ? `<link rel="canonical" href="${e(absolute)}"><meta property="og:url" content="${e(absolute)}">` : ''}${article ? `<meta property="article:published_time" content="${e(article.date)}">` : ''}
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="alternate" type="application/rss+xml" title="${e(site.name)} RSS" href="/feed.xml"><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/mascot.css"><link rel="stylesheet" href="/assets/boot.css"><script src="/assets/theme.js"></script><script defer src="/assets/boot.js"></script><script type="module" src="/assets/app.js"></script></head>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="alternate" type="application/rss+xml" title="${e(site.name)} RSS" href="/feed.xml"><link rel="stylesheet" href="/assets/katex.min.css"><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/mascot.css"><link rel="stylesheet" href="/assets/boot.css"><script src="/assets/theme.js"></script><script defer src="/assets/boot.js"></script><script type="module" src="/assets/app.js"></script></head>
 <body data-page="${article ? 'article' : active}"><template id="mascot-template">${renderMascot()}</template><a class="skip-link" href="#main">Skip to content</a><div class="read-progress" aria-hidden="true"></div>
 <header class="site-header wrap"><a class="brand" href="/" aria-label="${e(site.name)} home"><span class="brand-symbol" aria-hidden="true">f<span>_</span></span><span>${e(site.name)}<span class="brand-cursor">_</span></span></a><nav aria-label="Main navigation"><a href="/#notebook" ${active === 'articles' ? 'aria-current="page"' : ''}>Articles</a><a href="/lab/" ${active === 'lab' ? 'aria-current="page"' : ''}>The lab</a><a href="/about/" ${active === 'about' ? 'aria-current="page"' : ''}>About Patrick</a><a class="nav-call" href="/connect/" ${active === 'connect' ? 'aria-current="page"' : ''}>Say hello &#8599;</a></nav><div class="header-tools"><button class="search-trigger" data-search aria-label="Search notes and commands"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path></svg><span>Search</span><kbd>/</kbd></button><button class="theme-toggle" data-theme-toggle aria-label="Change color theme"><span aria-hidden="true">&#9680;</span><span class="theme-name">Green</span></button></div></header>
 <main id="main" tabindex="-1">${body}${article ? `<div class="wrap">${renderChannels(site)}</div>` : ''}</main>
@@ -105,7 +103,7 @@ function shell(site, { title, description = site.description, path = '/', active
 }
 
 function metadata(article) {
-  return `<span class="category-label">${e(article.category)}</span><span class="note-type">${article.sample ? 'SAMPLE NOTE' : 'FIELD NOTE'}</span>`;
+  return `<span class="category-label">${e(article.category)}</span><span class="note-type">FIELD NOTE</span>`;
 }
 
 function noteCard(article, index) {
@@ -117,8 +115,8 @@ function githubPanel(site, type) {
   return `<section class="uplink-panel" aria-labelledby="${type}-title"><div class="panel-title"><h2 id="${type}-title">${type === 'activity' ? 'PUBLIC ACTIVITY' : type === 'commits' ? 'RECENT COMMITS' : 'RELEASES'}</h2><span aria-hidden="true">${type === 'activity' ? 'events' : type === 'commits' ? 'git log' : 'git tag'}</span></div><div data-github="${type}" aria-live="polite">${configured ? '<p class="muted">Connecting to the public GitHub API...</p>' : `<div class="empty-uplink"><span class="uplink-symbol" aria-hidden="true">${type === 'activity' ? '>_' : '[+]'}</span><h3>No projects linked yet.</h3><p>${type === 'activity' ? 'Public commits and pull requests will appear here when I add my GitHub profile.' : 'I’ll link repositories here so you can read their release notes and try the projects.'}</p><span class="offline-label"><i></i> NOT CONFIGURED</span></div>`}</div></section>`;
 }
 
-export function socialPosts(site) {
-  const linkedinPosts = externalPosts.filter(post => post.source === 'LinkedIn');
+export function socialPosts(site, links = externalPosts) {
+  const linkedinPosts = links.filter(post => post.source === 'LinkedIn');
   return `<section class="elsewhere-posts" id="elsewhere"><div class="overline">ELSEWHERE</div><h2>Notes between notes.</h2><p>Shorter thoughts, conversations, and things I’m working on.</p><div class="external-grid social-grid">${site.links.x ? `<section class="uplink-panel"><div class="panel-title"><h3>ON X</h3><a href="${e(site.links.x)}" target="_blank" rel="noopener noreferrer">Open X &#8599;</a></div><div data-x-timeline="${e(site.links.x)}"></div><p class="social-fallback">If the timeline doesn’t load, <a href="${e(site.links.x)}" target="_blank" rel="noopener noreferrer">read my posts on X &#8599;</a></p></section>` : ''}${site.links.linkedin ? `<section class="uplink-panel"><div class="panel-title"><h3>ON LINKEDIN</h3></div><div class="social-copy">${linkedinPosts.length ? linkedinPosts.map(post => `<a class="github-event" href="${e(post.url)}" target="_blank" rel="noopener noreferrer"><strong>${e(post.title)}</strong><span>${e(post.description)}</span><time datetime="${post.date}">${dateLabel(post.date)}</time></a>`).join('') : '<p>I also write about software and technical teams on LinkedIn. Join the conversation there.</p>'}<a class="connection" href="${e(site.links.linkedin.replace(/\/$/, '') + '/recent-activity/all/')}" target="_blank" rel="noopener noreferrer">Read my LinkedIn posts &#8599;</a></div></section>` : ''}</div></section>`;
 }
 
@@ -127,35 +125,64 @@ export function githubStats(site) {
   return `<section class="contribution-section" id="github-work" aria-labelledby="contribution-title"><div class="overline">THE PAST YEAR ON GITHUB</div><h2 id="contribution-title">Building, bit by bit.</h2><div data-github-stats><p>Contribution calendar and work totals are loading.</p></div><a href="https://github.com/${e(site.github.username)}?tab=overview" target="_blank" rel="noopener noreferrer">View my GitHub profile &#8599;</a></section>`;
 }
 
-function home(site) {
-  const featured = articles.find((article) => article.featured);
+function home(site, articles, links) {
+  const featured = selectFeatured(articles);
   const rest = articles.filter((article) => article !== featured);
-  const sampleCount = articles.filter((article) => article.sample).length;
+  const notebook = featured
+    ? `<div class="archive-layout"><div class="notes-column"><article class="featured-note" data-note data-category="${e(featured.category)}" data-search-text="${e([featured.title, featured.description, featured.category, ...featured.tags].join(' ').toLowerCase())}"><div class="featured-copy"><div class="note-meta"><span class="featured-label"><span aria-hidden="true">*</span> FEATURED NOTE</span><span class="note-type">FIELD NOTE</span></div><span class="category-label">${e(featured.category)}</span><a class="note-link" href="${notePath(featured)}"><h3>${e(featured.title)}</h3><span class="note-arrow" aria-hidden="true">&#8599;</span></a><p>${e(featured.description)}</p><div class="note-bottom"><time datetime="${featured.date}">${dateLabel(featured.date)}</time><span>${featured.readingMinutes} min read</span></div></div><div class="featured-art" aria-hidden="true"><span>FIG. 01 / KNOW YOUR BOUNDARIES</span><div class="boundary-diagram"><div>[ DEVELOPMENT ]</div><i>:<br>:<br>v</i><div>[ SIMULATION ]</div><i>:<br>:<br>v</i><div class="boundary-production">[ PRODUCTION ]</div></div><span class="boundary-caption">TEST HERE. NOT OUT THERE.</span></div></article><div class="note-grid">${rest.map((article) => noteCard(article, articles.indexOf(article))).join('')}</div><div class="empty-search" hidden><span aria-hidden="true">[ 0 RESULTS ]</span><h3>No matching notes.</h3><p>Try another topic or a different search.</p><button class="button" data-reset>Show all notes</button></div><p class="archive-count" aria-live="polite"><span data-note-count>${articles.length}</span> notes in the notebook <span>// END OF LOG</span></p></div>
+    <aside class="notebook-sidebar"><div class="sidebar-heading"><span class="signal-dot"></span> FROM THE WORKBENCH</div>${githubPanel(site, 'activity')}<a class="sidebar-lab-link" href="/lab/#github-work">Commits, graph &amp; releases <span>&#8599;</span></a><div class="sidebar-note"><span class="overline">A QUESTION TO START WITH</span><p>Can the next person <em>diagnose it?</em></p><span>Name the symptom. Explain the next step.</span></div></aside></div>`
+    : `<div class="archive-layout"><div class="notes-column"><div class="empty-notebook"><span class="overline">[ NOTEBOOK OPEN ]</span><h3>First field note in progress.</h3><p>The notebook is ready. The first published note will appear here.</p></div><p class="archive-count" aria-live="polite"><span data-note-count>0</span> notes in the notebook <span>// READY</span></p></div><aside class="notebook-sidebar"><div class="sidebar-heading"><span class="signal-dot"></span> FROM THE WORKBENCH</div>${githubPanel(site, 'activity')}<a class="sidebar-lab-link" href="/lab/#github-work">Commits, graph &amp; releases <span>&#8599;</span></a></aside></div>`;
   const body = `<div class="wrap"><div class="eyebrow-line"><span><i class="tiny-square"></i> PERSONAL ENGINEERING LOG</span><span>PATRICK MANNION / FIELDNOTES</span></div>
     <section class="hero"><div class="hero-copy"><div class="overline">// NOTES BY PATRICK MANNION</div><h1>Software for<br><span>the factory floor.<br>Notes from Patrick.</span></h1><p>Production data, unreliable integrations, AI experiments, and the work of leading a technical team. A notebook for working through the details.</p><div class="hero-actions"><a class="button primary" href="#notebook">Explore the notes <span>&#8595;</span></a><a class="text-link" href="/about/">Meet Patrick <span>&#8599;</span></a></div><span class="hero-footnote"><span class="signal-dot"></span> INDUSTRIAL SOFTWARE / DEVELOPMENT / TEAM LEADERSHIP</span></div><div class="hero-artwork" data-welcome><div class="welcome-media">${renderMascot()}<video data-src="/assets/patrick-welcome.mp4" muted playsinline preload="none" aria-label="Patrick walks to the terminal, types, and gives a thumbs-up."></video></div><button class="welcome-replay" type="button" hidden>Play animation</button></div></section>
     ${authorCard(site)}
     <script type="module" src="/assets/welcome.js"></script>
     <div class="topic-ticker" aria-label="Topics"><span>INDUSTRIAL SOFTWARE</span><i>+</i><span>SOFTWARE DEVELOPMENT</span><i>+</i><span>LEADING TEAMS</span><i>+</i><span>AI &amp; ML</span><i class="ticker-last">+</i><span class="ticker-last">THINKING OUT LOUD</span></div>
     <section class="notebook" id="notebook" aria-labelledby="notebook-title"><div class="section-heading"><div><div class="overline">01 / THE NOTEBOOK</div><h2 id="notebook-title">Latest notes<span class="accent">.</span></h2></div><span class="section-aside">PROBLEMS, DECISIONS &amp; EXAMPLES</span></div>
-    <div class="filterbar" data-enhanced hidden><div class="filter-buttons" role="group" aria-label="Filter notes by topic"><button class="filter active" data-filter="all" aria-pressed="true">All notes <span>${articles.length}</span></button>${categories.map((category) => `<button class="filter" data-filter="${e(category)}" aria-pressed="false">${e(category)}</button>`).join('')}</div><button class="filter-search" data-search aria-label="Search the notebook">Find a note <kbd>/</kbd></button></div>
-    ${sampleCount ? `<p class="sample-edition">PREVIEW EDITION <span>/</span> ${sampleCount} sample notes demonstrate the reading experience. Demonstration content is labeled throughout.</p>` : ''}
-    <div class="archive-layout"><div class="notes-column"><article class="featured-note" data-note data-category="${e(featured.category)}" data-search-text="${e([featured.title, featured.description, featured.category, ...featured.tags].join(' ').toLowerCase())}"><div class="featured-copy"><div class="note-meta"><span class="featured-label"><span aria-hidden="true">*</span> FEATURED NOTE</span><span class="note-type">${featured.sample ? 'SAMPLE NOTE' : 'FIELD NOTE'}</span></div><span class="category-label">${e(featured.category)}</span><a class="note-link" href="${notePath(featured)}"><h3>${e(featured.title)}</h3><span class="note-arrow" aria-hidden="true">&#8599;</span></a><p>${e(featured.description)}</p><div class="note-bottom"><time datetime="${featured.date}">${dateLabel(featured.date)}</time><span>${featured.readingMinutes} min read</span></div></div><div class="featured-art" aria-hidden="true"><span>FIG. 01 / KNOW YOUR BOUNDARIES</span><div class="boundary-diagram"><div>[ DEVELOPMENT ]</div><i>:<br>:<br>v</i><div>[ SIMULATION ]</div><i>:<br>:<br>v</i><div class="boundary-production">[ PRODUCTION ]</div></div><span class="boundary-caption">TEST HERE. NOT OUT THERE.</span></div></article><div class="note-grid">${rest.map((article) => noteCard(article, articles.indexOf(article))).join('')}</div><div class="empty-search" hidden><span aria-hidden="true">[ 0 RESULTS ]</span><h3>No matching notes.</h3><p>Try another topic or a different search.</p><button class="button" data-reset>Show all notes</button></div><p class="archive-count" aria-live="polite"><span data-note-count>${articles.length}</span> notes in the notebook <span>// END OF LOG</span></p></div>
-    <aside class="notebook-sidebar"><div class="sidebar-heading"><span class="signal-dot"></span> FROM THE WORKBENCH</div>${githubPanel(site, 'activity')}<a class="sidebar-lab-link" href="/lab/#github-work">Commits, graph &amp; releases <span>&#8599;</span></a><div class="sidebar-note"><span class="overline">A QUESTION TO START WITH</span><p>Can the next person <em>diagnose it?</em></p><span>Name the symptom. Explain the next step.</span></div></aside></div>
+    ${articles.length ? `<div class="filterbar" data-enhanced hidden><div class="filter-buttons" role="group" aria-label="Filter notes by topic"><button class="filter active" data-filter="all" aria-pressed="true">All notes <span>${articles.length}</span></button>${categories.map((category) => `<button class="filter" data-filter="${e(category)}" aria-pressed="false">${e(category)}</button>`).join('')}</div><button class="filter-search" data-search aria-label="Search the notebook">Find a note <kbd>/</kbd></button></div>` : ''}
+    ${notebook}
     </section>
-    ${externalPosts.length ? `<section class="elsewhere-posts"><div class="overline">02 / CROSS-POSTED</div><h2>More of my writing.</h2><div class="external-grid">${externalPosts.map((post) => `<a href="${e(post.url)}" target="_blank" rel="noopener noreferrer"><span>${e(post.source)} / ${dateLabel(post.date)}</span><h3>${e(post.title)} &#8599;</h3><p>${e(post.description)}</p></a>`).join('')}</div></section>` : ''}
+    ${links.length ? `<section class="elsewhere-posts"><div class="overline">02 / CROSS-POSTED</div><h2>More of my writing.</h2><div class="external-grid">${links.map((post) => `<a href="${e(post.url)}" target="_blank" rel="noopener noreferrer"><span>${e(post.source)} / ${dateLabel(post.date)}</span><h3>${e(post.title)} &#8599;</h3><p>${e(post.description)}</p></a>`).join('')}</div></section>` : ''}
     ${githubStats(site)}
-    ${socialPosts(site)}
+    ${socialPosts(site, links)}
     ${renderChannels(site)}
   </div>`;
   return shell(site, { body });
 }
 
-function articlePage(site, article, index) {
-  const sections = article.sections.map((section) => `<section id="${e(section.id)}"><h2>${e(section.title)}</h2>${section.paragraphs.map((paragraph) => `<p>${e(paragraph)}</p>`).join('')}${section.code ? `<div class="code-block"><div><span>${e(section.code.language)}</span><button data-copy-code aria-label="Copy code example">Copy</button></div><pre><code>${e(section.code.text)}</code></pre></div>` : ''}${section.list ? `<ul>${section.list.map((item) => `<li>${e(item)}</li>`).join('')}</ul>` : ''}${section.quote ? `<blockquote>${e(section.quote)}</blockquote>` : ''}</section>`).join('');
+function tocItems(headings) {
+  return `<ol>${headings.map((heading, index) => `<li><a href="#${e(heading.id)}"><span>${String(index + 1).padStart(2, '0')}</span>${e(heading.text)}</a>${heading.children?.length ? tocItems(heading.children) : ''}</li>`).join('')}</ol>`;
+}
+
+function articlePage(site, article, index, articles) {
   const next = articles[(index + 1) % articles.length];
-  const body = `<div class="wrap article-wrap"><a class="back-link" href="/#notebook">&#8592; Back to the notebook</a><header class="article-header"><div class="note-meta">${metadata(article)}</div><h1>${e(article.title)}<span class="accent">.</span></h1><p class="article-deck">${e(article.description)}</p><div class="article-byline">${article.sample ? '<span>FIELDNOTES / SAMPLE</span>' : `<a href="/about/">${e(site.author)}</a>`}<time datetime="${article.date}">${dateLabel(article.date)}</time><span>${article.readingMinutes} min read</span></div></header><div class="reading-layout"><article class="article-body">${article.sample ? '<div class="sample-notice"><strong>A sample note.</strong> This is demonstration content for the site preview, not a published article by the site owner.</div>' : ''}${sections}<div class="article-end"><span>// END OF NOTE</span><div>${article.tags.map((tag) => `<span class="tag">${e(tag)}</span>`).join('')}</div><div class="article-share"><button class="button" data-copy-markdown data-enhanced hidden>Copy Markdown</button><button class="button" data-copy-link>Copy article link &#8599;</button><a class="text-link" href="${notePath(article)}index.md" download="${e(article.slug)}.md">Download .md</a></div></div></article><aside class="reading-aside"><nav aria-label="On this page"><span class="overline">IN THIS NOTE</span>${article.sections.map((section, i) => `<a href="#${e(section.id)}"><span>${String(i + 1).padStart(2, '0')}</span>${e(section.title)}</a>`).join('')}</nav><div class="reading-aside-tip"><kbd>gg</kbd> back to top<br><kbd>?</kbd> keyboard shortcuts</div></aside></div>${authorCard(site)}<a class="next-note note-link" href="${notePath(next)}"><span class="overline">NEXT NOTE</span><h2>${e(next.title)} <span>&#8594;</span></h2><span>${e(next.category)} / ${next.readingMinutes} min read</span></a></div>`;
-  const markdownData = `<script type="application/json" id="article-markdown">${JSON.stringify(renderMarkdown(site, article)).replace(/</g, '\\u003c')}</script>`;
+  const navigation = article.rendered.toc.length
+    ? `<aside class="reading-aside"><nav aria-label="On this page"><span class="overline">IN THIS NOTE</span>${tocItems(article.rendered.toc)}</nav><div class="reading-aside-tip"><kbd>gg</kbd> back to top<br><kbd>?</kbd> keyboard shortcuts</div></aside>`
+    : '';
+  const body = `<div class="wrap article-wrap"><a class="back-link" href="/#notebook">&#8592; Back to the notebook</a><header class="article-header"><div class="note-meta">${metadata(article)}</div><h1>${e(article.title)}<span class="accent">.</span></h1><p class="article-deck">${e(article.description)}</p><div class="article-byline"><a href="/about/">${e(site.author)}</a><time datetime="${article.date}">${dateLabel(article.date)}</time><span>${article.readingMinutes} min read</span></div></header><div class="reading-layout"><article class="article-body">${article.rendered.html}<div class="article-end"><span>// END OF NOTE</span><div>${article.tags.map((tag) => `<a class="tag tag-link" href="/tags/${tagSlug(tag)}/">${e(tag)}</a>`).join('')}</div><div class="article-share"><button class="button" data-copy-markdown data-enhanced hidden>Copy Markdown</button><button class="button" data-copy-link>Copy article link &#8599;</button><a class="text-link" href="${notePath(article)}index.md" download="${e(article.slug)}.md">Download .md</a></div></div></article>${navigation}</div>${authorCard(site)}<a class="next-note note-link" href="${notePath(next)}"><span class="overline">NEXT NOTE</span><h2>${e(next.title)} <span>&#8594;</span></h2><span>${e(next.category)} / ${next.readingMinutes} min read</span></a></div>`;
+  const markdownData = `<script type="application/json" id="article-markdown">${JSON.stringify(article.source).replace(/</g, '\\u003c')}</script>`;
   return shell(site, { title: article.title, description: article.description, path: notePath(article), body: body + markdownData, article });
+}
+
+function tagArchives(articles) {
+  const archives = new Map();
+  for (const article of articles) {
+    for (const label of article.tags) {
+      const slug = tagSlug(label);
+      const directorySlug = decodeURIComponent(slug);
+      if (!/^[\p{Letter}\p{Number}]+(?:-[\p{Letter}\p{Number}]+)*$/u.test(directorySlug)) {
+        throw new Error(`Tag directory slug is unsafe: ${slug}`);
+      }
+      const archive = archives.get(slug) ?? { slug, directorySlug, label, articles: [] };
+      archive.articles.push(article);
+      archives.set(slug, archive);
+    }
+  }
+  return [...archives.values()].sort((left, right) => left.slug.localeCompare(right.slug));
+}
+
+function tagPage(site, archive) {
+  const body = `<div class="wrap secondary-page tag-archive"><a class="back-link" href="/#notebook">&#8592; Back to the notebook</a><header class="secondary-header"><div><div class="overline">TAG ARCHIVE / ${archive.articles.length} ${archive.articles.length === 1 ? 'NOTE' : 'NOTES'}</div><h1>${e(archive.label)}<span class="accent">.</span></h1><p>Published field notes tagged ${e(archive.label)}.</p></div></header><div class="note-grid">${archive.articles.map((article, index) => noteCard(article, index)).join('')}</div></div>`;
+  return shell(site, { title: `Notes tagged ${archive.label}`, path: `/tags/${archive.slug}/`, body });
 }
 
 function labPage(site) {
@@ -166,42 +193,205 @@ function labPage(site) {
 }
 
 function aboutPage(site) {
-  const body = `<div class="wrap secondary-page"><div class="overline">03 / ABOUT PATRICK</div><header class="secondary-header"><div><h1>Hi, I’m Patrick<span class="accent">.</span></h1><p>${e(site.bio?.short || site.description)}</p></div><div class="about-mark" aria-hidden="true">[<span>pm_</span>]<small>THE PERSON BEHIND FIELDNOTES</small></div></header><div class="about-grid"><section id="bio"><h2>A little about this notebook</h2>${(site.bio?.paragraphs || []).map((paragraph) => `<p>${e(paragraph)}</p>`).join('')}<h2>What I’m writing about</h2><div class="about-topics">${categories.map((category, index) => `<div><span>0${index + 1}</span>${e(category)}</div>`).join('')}</div>${articles.some((article) => article.sample) ? '<div class="sample-notice">The notebook is taking shape. Notes marked “sample” are demonstration pieces, not accounts of my work or published articles.</div>' : ''}</section><aside id="connections"><div class="overline">KEEP IN TOUCH</div><h2>Find me here.</h2><p>If something here overlaps with your work, I’d enjoy comparing notes.</p>${connectionLinks(site)}<a class="connection" href="/feed.xml"><span>Follow the notebook via RSS</span><span aria-hidden="true">&#8599;</span></a>${site.links.booking ? `<a class="connection" href="${e(site.links.booking)}" target="_blank" rel="noopener noreferrer"><span>Book a conversation</span><span aria-hidden="true">&#8599;</span></a>` : ''}${site.links.patreon ? `<a class="connection" href="${e(site.links.patreon)}" target="_blank" rel="noopener noreferrer">Support on Patreon &#8599;</a>` : ''}${site.membership.enabled ? `<a class="connection" href="${e(site.membership.url)}" target="_blank" rel="noopener noreferrer">Membership &#8599;</a>` : ''}</aside></div><section class="colophon"><div class="overline">ABOUT THE SITE</div><h2>A notebook with a terminal habit.</h2><p>The interface borrows from old terminals: phosphor green, a command line, and keyboard navigation. You can switch to amber or paper, skip the opening animation, or turn off the single-key shortcuts.</p><button class="button" data-help>Keyboard shortcuts <kbd>?</kbd></button></section></div>`;
+  const body = `<div class="wrap secondary-page"><div class="overline">03 / ABOUT PATRICK</div><header class="secondary-header"><div><h1>Hi, I’m Patrick<span class="accent">.</span></h1><p>${e(site.bio?.short || site.description)}</p></div><div class="about-mark" aria-hidden="true">[<span>pm_</span>]<small>THE PERSON BEHIND FIELDNOTES</small></div></header><div class="about-grid"><section id="bio"><h2>A little about this notebook</h2>${(site.bio?.paragraphs || []).map((paragraph) => `<p>${e(paragraph)}</p>`).join('')}<h2>What I’m writing about</h2><div class="about-topics">${categories.map((category, index) => `<div><span>0${index + 1}</span>${e(category)}</div>`).join('')}</div></section><aside id="connections"><div class="overline">KEEP IN TOUCH</div><h2>Find me here.</h2><p>If something here overlaps with your work, I’d enjoy comparing notes.</p>${connectionLinks(site)}<a class="connection" href="/feed.xml"><span>Follow the notebook via RSS</span><span aria-hidden="true">&#8599;</span></a>${site.links.booking ? `<a class="connection" href="${e(site.links.booking)}" target="_blank" rel="noopener noreferrer"><span>Book a conversation</span><span aria-hidden="true">&#8599;</span></a>` : ''}${site.links.patreon ? `<a class="connection" href="${e(site.links.patreon)}" target="_blank" rel="noopener noreferrer">Support on Patreon &#8599;</a>` : ''}${site.membership.enabled ? `<a class="connection" href="${e(site.membership.url)}" target="_blank" rel="noopener noreferrer">Membership &#8599;</a>` : ''}</aside></div><section class="colophon"><div class="overline">ABOUT THE SITE</div><h2>A notebook with a terminal habit.</h2><p>The interface borrows from old terminals: phosphor green, a command line, and keyboard navigation. You can switch to amber or paper, skip the opening animation, or turn off the single-key shortcuts.</p><button class="button" data-help>Keyboard shortcuts <kbd>?</kbd></button></section></div>`;
   return shell(site, { title: `About ${site.author}`, path: '/about/', active: 'about', body });
 }
 
 export function renderFeed(site, notes) {
   const origin = site.siteUrl;
+  const xmlText = (value) => e([...String(value)].filter((character) => {
+    const point = character.codePointAt(0);
+    return point === 0x9 || point === 0xa || point === 0xd
+      || (point >= 0x20 && point <= 0xd7ff)
+      || (point >= 0xe000 && point <= 0xfffd)
+      || (point >= 0x10000 && point <= 0x10ffff);
+  }).join(''));
   // A preview without a known origin deliberately has no misleading absolute links.
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${e(site.name)}</title><link>${e(origin || '/')}</link><description>${e(site.description)}</description><language>en</language>${notes.map((note) => { const url = origin ? new URL(notePath(note), origin).href : notePath(note); return `<item><title>${e(note.title)}${note.sample ? ' [Sample]' : ''}</title><link>${e(url)}</link><guid isPermaLink="${Boolean(origin)}">${e(url)}</guid><description>${e(`${note.sample ? 'Sample article for the site preview. ' : ''}${note.description}`)}</description><pubDate>${new Date(`${note.date}T12:00:00Z`).toUTCString()}</pubDate><category>${e(note.category)}</category></item>`; }).join('')}</channel></rss>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${xmlText(site.name)}</title><link>${xmlText(origin || '/')}</link><description>${xmlText(site.description)}</description><language>en</language>${notes.map((note) => { const url = origin ? new URL(notePath(note), origin).href : notePath(note); return `<item><title>${xmlText(note.title)}</title><link>${xmlText(url)}</link><guid isPermaLink="${Boolean(origin)}">${xmlText(url)}</guid><description>${xmlText(note.description)}</description><pubDate>${new Date(`${note.date}T12:00:00Z`).toUTCString()}</pubDate>${[note.category, ...note.tags].map((classification) => `<category>${xmlText(classification)}</category>`).join('')}</item>`; }).join('')}</channel></rss>`;
 }
 
-export async function build() {
-  const site = structuredClone(sourceSite);
-  if (process.env.SITE_URL) site.siteUrl = process.env.SITE_URL;
-  validateContent(site, articles, externalPosts);
-  if (site.siteUrl) site.siteUrl = new URL(site.siteUrl).origin + '/';
-  const dist = join(root, 'dist');
-  await rm(dist, { recursive: true, force: true });
-  await mkdir(dist, { recursive: true });
-  await cp(join(root, 'public'), dist, { recursive: true });
-  const assets = join(dist, 'assets');
+function flattenHeadings(headings) {
+  return headings.flatMap((heading) => [heading.text, ...flattenHeadings(heading.children ?? [])]);
+}
+
+function searchArticle(article) {
+  const headings = flattenHeadings(article.rendered.toc);
+  const body = article.rendered.plainText;
+  return {
+    slug: article.slug,
+    title: article.title,
+    description: article.description,
+    date: article.date,
+    category: article.category,
+    tags: article.tags,
+    readingMinutes: article.readingMinutes,
+    featured: article.featured,
+    url: notePath(article),
+    headings,
+    body,
+    searchText: [article.title, article.description, article.category, ...article.tags, ...headings, body].join(' '),
+  };
+}
+
+async function canonicalPath(path) {
+  const absolute = resolve(path);
+  try {
+    return await realpath(absolute);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+    const parent = dirname(absolute);
+    if (parent === absolute) throw error;
+    return join(await canonicalPath(parent), basename(absolute));
+  }
+}
+
+function isStrictDescendant(parent, candidate) {
+  const path = relative(parent, candidate);
+  return path !== '' && path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
+}
+
+const generatedPublicFiles = new Set([
+  '404.html', 'feed.xml', 'index.html', 'robots.txt', 'sitemap.xml',
+  'assets/data.json', 'assets/fieldnotes-renderer-browser.js', 'assets/katex.min.css',
+]);
+const generatedPublicDirectories = ['about', 'connect', 'lab', 'notes', 'tags', 'assets/fonts'];
+
+function isGeneratedPublicPath(path) {
+  const normalized = path.split(sep).join('/').toLowerCase();
+  return generatedPublicFiles.has(normalized)
+    || generatedPublicDirectories.some((directory) => normalized === directory || normalized.startsWith(`${directory}/`));
+}
+
+async function preflightPublicTree(publicDir) {
+  const root = await lstat(publicDir);
+  if (root.isSymbolicLink() || !root.isDirectory()) throw new Error('Public source must be a real directory, not a symbolic link.');
+  async function walk(directory, prefix = '') {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const path = prefix ? join(prefix, entry.name) : entry.name;
+      if (entry.isSymbolicLink()) throw new Error(`Public source contains a symbolic link: ${path}`);
+      if (isGeneratedPublicPath(path)) throw new Error(`Public source collides with a generated destination: ${path}`);
+      if (entry.isDirectory()) await walk(join(directory, entry.name), path);
+      else if (!entry.isFile()) throw new Error(`Public source contains a non-regular entry: ${path}`);
+    }
+  }
+  await walk(publicDir);
+}
+
+export async function loadLocalStylesheetBundle(stylesheetPath) {
+  const stylesheet = await realpath(stylesheetPath);
+  const directory = await realpath(dirname(stylesheet));
+  const fontDirectory = await realpath(join(directory, 'fonts'));
+  const css = await readFile(stylesheet, 'utf8');
+  const references = [...css.matchAll(/url\(([^)]+)\)/g)].map((match) => match[1].trim().replace(/^(['"])(.*)\1$/, '$2'));
+  const fonts = new Map();
+  for (const reference of references) {
+    if (!/^fonts\/[A-Za-z0-9_.-]+\.(?:woff2?|ttf)$/u.test(reference)) {
+      throw new Error(`Stylesheet asset must be a local font path: ${reference}`);
+    }
+    const source = await realpath(join(directory, reference));
+    if (!isStrictDescendant(fontDirectory, source)) throw new Error(`Stylesheet font escapes its package directory: ${reference}`);
+    fonts.set(basename(reference), await readFile(source));
+  }
+  if (fonts.size === 0) throw new Error('Stylesheet must reference at least one local font.');
+  return { css, fonts };
+}
+
+async function validateOutputDestination(rootDir, outputDir) {
+  const [root, destination, publicDir] = await Promise.all([
+    realpath(resolve(rootDir)),
+    canonicalPath(outputDir),
+    canonicalPath(join(rootDir, 'public')),
+  ]);
+  if (!isStrictDescendant(root, destination) || destination === publicDir || isStrictDescendant(publicDir, destination)) {
+    throw new Error('outputDir must be a dedicated canonical strict descendant within the project boundary.');
+  }
+  return destination;
+}
+
+function preflightArticleAssets(destination, articles) {
+  const reserved = new Set(['index.html', 'index.md']);
+  for (const article of articles) {
+    const noteDir = join(destination, 'notes', article.slug);
+    for (const asset of article.localAssets ?? []) {
+      const assetDestination = resolve(noteDir, asset.source);
+      const path = relative(noteDir, assetDestination);
+      if (!path || path === '..' || path.startsWith(`..${sep}`) || isAbsolute(path)) {
+        throw new Error(`Article asset must remain inside its note directory: ${article.slug}/${asset.source}`);
+      }
+      if (reserved.has(path.toLowerCase())) {
+        throw new Error(`Article asset uses a reserved generated file name: ${article.slug}/${asset.source}`);
+      }
+    }
+  }
+}
+
+export async function writeSite({ rootDir, outputDir, site, articles, links }) {
+  const destination = await validateOutputDestination(rootDir, outputDir);
+  preflightArticleAssets(destination, articles);
+  const publicDir = join(rootDir, 'public');
+  await preflightPublicTree(publicDir);
+  const rendererEntry = import.meta.resolve('@cruciblesoftware/fieldnotes-renderer');
+  const katexPath = fileURLToPath(import.meta.resolve('katex/dist/katex.min.css', rendererEntry));
+  const katex = await loadLocalStylesheetBundle(katexPath);
+  const archives = tagArchives(articles);
+  await rm(destination, { recursive: true, force: true });
+  await mkdir(destination, { recursive: true });
+  await cp(publicDir, destination, { recursive: true });
+  await preflightPublicTree(destination);
+  const assets = join(destination, 'assets');
+  await cp(fileURLToPath(import.meta.resolve('@cruciblesoftware/fieldnotes-renderer/browser')), join(assets, 'fieldnotes-renderer-browser.js'));
+  await writeFile(join(assets, 'katex.min.css'), katex.css);
+  await mkdir(join(assets, 'fonts'), { recursive: true });
+  for (const [name, bytes] of katex.fonts) await writeFile(join(assets, 'fonts', name), bytes);
+  const searchData = JSON.stringify({ site, articles: articles.map(searchArticle), externalPosts: links, ignitionTools: site.ignitionTools });
   const codeFiles = (await readdir(assets)).filter(name => /\.(js|css)$/.test(name)).sort();
   const hash = createHash('sha256');
   for (const name of codeFiles) hash.update(name).update(await readFile(join(assets, name)));
+  for (const [name, bytes] of [...katex.fonts].sort(([left], [right]) => left.localeCompare(right))) hash.update(name).update(bytes);
+  hash.update('data.json').update(searchData);
   const version = hash.digest('hex').slice(0, 12);
+  await writeFile(join(assets, 'katex.min.css'), katex.css.replace(/url\((['"]?)(fonts\/[A-Za-z0-9_.-]+\.(?:woff2?|ttf))\1\)/g, `url($1$2?v=${version}$1)`));
   for (const name of codeFiles.filter(name => name.endsWith('.js'))) {
     const code = await readFile(join(assets, name), 'utf8');
-    await writeFile(join(assets, name), code.replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`));
+    await writeFile(join(assets, name), code
+      .replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`)
+      .replaceAll('__FIELDNOTES_BUILD_VERSION__', version));
   }
-  const pages = [['index.html', home(site)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index)])];
-  for (const [path, html] of pages) { await mkdir(resolve(dist, path, '..'), { recursive: true }); await writeFile(join(dist, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`)); }
-  for (const article of articles) await writeFile(join(dist, `notes/${article.slug}/index.md`), renderMarkdown(site, article));
-  await writeFile(join(dist, 'assets/data.json'), JSON.stringify({ site, articles: articles.map(({ sections, ...article }) => ({ ...article, url: notePath(article) })), externalPosts, ignitionTools: site.ignitionTools }));
-  await writeFile(join(dist, 'feed.xml'), renderFeed(site, articles));
-  await writeFile(join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n${site.siteUrl ? `Sitemap: ${site.siteUrl}sitemap.xml\n` : ''}`);
-  if (site.siteUrl) await writeFile(join(dist, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', ...articles.map(notePath)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
-  console.log(`Built ${pages.length} pages and ${articles.length} notes in dist/. ${site.siteUrl ? `Site: ${site.siteUrl}` : 'Set SITE_URL when publishing to finalize feed and canonical URLs.'}`);
+  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.directorySlug}/index.html`, tagPage(site, archive)])];
+  for (const [path, html] of pages) {
+    await mkdir(resolve(destination, path, '..'), { recursive: true });
+    await writeFile(join(destination, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`));
+  }
+  for (const article of articles) {
+    const noteDir = join(destination, 'notes', article.slug);
+    await writeFile(join(noteDir, 'index.md'), article.source);
+    for (const asset of article.localAssets) {
+      const assetDestination = resolve(noteDir, asset.source);
+      await mkdir(resolve(assetDestination, '..'), { recursive: true });
+      await cp(asset.resolvedPath, assetDestination);
+    }
+  }
+  await writeFile(join(assets, 'data.json'), searchData);
+  await writeFile(join(destination, 'feed.xml'), renderFeed(site, articles));
+  await writeFile(join(destination, 'robots.txt'), `User-agent: *\nAllow: /\n${site.siteUrl ? `Sitemap: ${site.siteUrl}sitemap.xml\n` : ''}`);
+  if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', ...articles.map(notePath), ...archives.map((archive) => `/tags/${archive.slug}/`)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
+  return { pageCount: pages.length, noteCount: articles.length };
+}
+
+export async function build({
+  rootDir = projectRoot,
+  contentDir = join(rootDir, 'content', 'posts'),
+  outputDir = join(rootDir, 'dist'),
+} = {}) {
+  const site = structuredClone(sourceSite);
+  if (process.env.SITE_URL) site.siteUrl = process.env.SITE_URL;
+  const posts = await loadPosts({ contentDir, schemaPath: join(rootDir, 'frontmatter.schema.json') });
+  const articles = publishedPosts(posts);
+  validateContent(site, articles, externalPosts);
+  if (site.siteUrl) site.siteUrl = new URL(site.siteUrl).origin + '/';
+  const result = await writeSite({ rootDir, outputDir, site, articles, links: externalPosts });
+  console.log(`Built ${result.pageCount} pages and ${result.noteCount} notes in ${outputDir}. ${site.siteUrl ? `Site: ${site.siteUrl}` : 'Set SITE_URL when publishing to finalize feed and canonical URLs.'}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await build();
