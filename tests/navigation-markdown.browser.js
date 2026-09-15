@@ -10,6 +10,8 @@ const workspace = await mkdtemp(join(tmpdir(), 'fieldnotes-browser-'));
 const rootDir = join(workspace, 'project');
 const contentDir = join(rootDir, 'posts');
 const outputDir = join(rootDir, 'site');
+const emptyContentDir = join(rootDir, 'empty-posts');
+const emptyOutputDir = join(rootDir, 'empty-site');
 const runner = join(workspace, 'checks.js');
 const types = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8',
@@ -18,7 +20,8 @@ const types = {
   '.xml': 'application/xml; charset=utf-8',
 };
 
-await mkdir(join(contentDir, 'renderer-contract'), { recursive: true });
+await mkdir(join(contentDir, 'renderer-contract/images'), { recursive: true });
+await mkdir(emptyContentDir, { recursive: true });
 await cp(resolve('public'), join(rootDir, 'public'), { recursive: true });
 await cp(resolve('frontmatter.schema.json'), join(rootDir, 'frontmatter.schema.json'));
 await writeFile(join(rootDir, 'public/assets/github-stats.json'), JSON.stringify({
@@ -41,19 +44,48 @@ Trace the purple semaphore through the browser.
 
 ### Nested signal
 
+| Signal | State |
+| --- | --- |
+| Renderer | Ready |
+
+\`\`\`javascript
+const extremelyLongDiagnosticIdentifier = 'this line is intentionally wider than a mobile article';
+\`\`\`
+
+Inline math $x^2 + y^2 = z^2$.
+
+![Local signal chart](images/chart.svg "Gateway status")
+
+Evidence remains attached to the observation.[^evidence]
+
+[^evidence]: Browser-visible supporting evidence.
+
 \`\`\`mermaid
 flowchart LR
   Source --> Preview
 \`\`\`
 `;
 await writeFile(join(contentDir, 'renderer-contract/index.md'), source);
+await writeFile(join(contentDir, 'renderer-contract/images/chart.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240"><rect width="640" height="240" fill="#263020"/><path d="M40 180 200 60 360 150 600 40" fill="none" stroke="#b6e889" stroke-width="12"/></svg>');
+await build({ rootDir, contentDir: emptyContentDir, outputDir: emptyOutputDir });
 await build({ rootDir, contentDir, outputDir });
+
+const { renderDocument } = await import('@cruciblesoftware/fieldnotes-renderer');
+const { conformanceCases } = await import('@cruciblesoftware/fieldnotes-renderer/conformance');
+const browserConformance = await Promise.all(conformanceCases.map(async (fixture) => ({
+  name: fixture.name,
+  html: (await renderDocument(fixture.source, fixture.options)).html,
+  expected: fixture.expected.hydratedDom,
+})));
 
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-    let path = resolve(outputDir, `.${pathname}`);
-    if (path !== outputDir && !path.startsWith(outputDir + sep)) {
+    const servesEmptySite = pathname === '/__empty/' || pathname.startsWith('/__empty/');
+    const servedRoot = servesEmptySite ? emptyOutputDir : outputDir;
+    const servedPathname = servesEmptySite ? pathname.slice('/__empty'.length) : pathname;
+    let path = resolve(servedRoot, `.${servedPathname}`);
+    if (path !== servedRoot && !path.startsWith(servedRoot + sep)) {
       response.writeHead(403); response.end('Forbidden'); return;
     }
     if ((await stat(path)).isDirectory()) path = join(path, 'index.html');
@@ -70,6 +102,7 @@ const base = `http://127.0.0.1:${port}`;
 
 async function browserChecks(page) {
   const base = '__BASE__';
+  const conformance = "__CONFORMANCE__";
   const localFailures = [];
   const pageErrors = [];
   const remoteScripts = [];
@@ -114,6 +147,36 @@ async function browserChecks(page) {
   });
   check(normalizedAgain === normalized, 'Mermaid normalized DOM is deterministic across hydration runs');
 
+  const richSelectors = [
+    ['table', 'Markdown table'], ['pre code', 'highlighted code'], ['.katex', 'math'],
+    ['figure img', 'figure image'], ['.fieldnotes-mermaid, svg.flowchart', 'Mermaid'],
+    ['.footnotes', 'footnotes'], ['a.tag-link', 'tag link'], ['.reading-aside ol ol', 'nested H3 table of contents'],
+  ];
+  for (const [selector, label] of richSelectors) {
+    check(await page.locator(selector).first().isVisible(), `${label} is visibly rendered in the article shell`);
+  }
+  const desktopLayout = await page.evaluate(() => ({
+    columns: getComputedStyle(document.querySelector('.reading-layout')).gridTemplateColumns,
+    tocPosition: getComputedStyle(document.querySelector('.reading-aside')).position,
+    codeOverflow: getComputedStyle(document.querySelector('.article-body pre')).overflowX,
+    tableOverflow: getComputedStyle(document.querySelector('.article-body table')).overflowX,
+    imageMaxWidth: getComputedStyle(document.querySelector('.article-body figure img')).maxWidth,
+  }));
+  check(desktopLayout.columns.split(' ').length >= 2, 'Desktop article keeps content and nested TOC in separate columns');
+  check(desktopLayout.tocPosition === 'sticky', 'Desktop nested TOC remains sticky');
+  check(['auto', 'scroll'].includes(desktopLayout.codeOverflow), 'Code blocks are independently overflow-safe');
+  check(['auto', 'scroll'].includes(desktopLayout.tableOverflow), 'Tables are independently overflow-safe');
+  check(desktopLayout.imageMaxWidth === '100%', 'Article images are responsive');
+
+  for (const selector of ['a.tag-link', '.reading-aside a', '[data-copy-markdown]']) {
+    const element = page.locator(selector).first();
+    await element.focus();
+    check(await element.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) >= 2;
+    }), `${selector} has a visible keyboard focus outline`);
+  }
+
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.copiedMarkdown = text; } } }));
   await page.locator('[data-copy-markdown]').click();
   const expectedMarkdown = await (await page.request.get(base + '/notes/renderer-contract/index.md')).text();
@@ -134,11 +197,29 @@ async function browserChecks(page) {
 
   await page.setViewportSize({ width: 390, height: 844 });
   check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Article controls and rendered Markdown fit mobile');
+  const mobileLayout = await page.evaluate(() => ({
+    direction: getComputedStyle(document.querySelector('.reading-layout')).flexDirection,
+    tocPosition: getComputedStyle(document.querySelector('.reading-aside')).position,
+    articleWidth: document.querySelector('.article-body').getBoundingClientRect().width,
+    viewportWidth: innerWidth,
+    richOverflow: [...document.querySelectorAll('.article-body table, .article-body pre, .article-body svg, .article-body figure')]
+      .every((node) => node.getBoundingClientRect().right <= innerWidth + 1),
+  }));
+  check(mobileLayout.direction === 'column' && mobileLayout.tocPosition === 'static', 'Mobile article stacks the nested TOC above the body');
+  check(mobileLayout.articleWidth < mobileLayout.viewportWidth && mobileLayout.richOverflow, 'Rich Markdown stays inside the mobile viewport');
   check(searchIndexRequests.length > 0 && searchIndexRequests.every((url) => /\/assets\/data\.json\?v=[a-f0-9]{12}$/.test(url)), 'Cmd+K requests the current versioned search index');
 
   await page.locator('a.tag-link', { hasText: 'Café' }).click();
   await page.waitForURL(/\/tags\/caf%C3%A9\/$/i);
   check(await page.locator('h1').textContent() === 'Café.', 'Unicode tag archive is reachable through a decoded static route');
+  check(await page.locator('.tag-archive').isVisible(), 'Tag archive is visibly rendered');
+  check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Tag archive fits the mobile viewport');
+
+  await page.goto(base + '/__empty/');
+  const emptyState = page.locator('.empty-notebook, .publication-empty').first();
+  check(await emptyState.isVisible(), 'Default empty publication state is visible');
+  check((await emptyState.innerText()).includes('First field note in progress.'), 'Empty publication state explains that the first note is in progress');
+  check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Default empty publication has no mobile horizontal overflow');
 
   await page.goto(base + '/lab/');
   const cards = await page.locator('.ignition-project-card').evaluateAll((elements) => elements.map((card) => ({
@@ -153,6 +234,28 @@ async function browserChecks(page) {
     await result.waitFor();
     check(await result.getAttribute('href') === card.documentationUrl, `${card.name} search and Lab documentation URLs agree`);
     await page.keyboard.press('Escape');
+  }
+
+  for (const fixture of conformance) {
+    const actual = await page.evaluate(async ({ html }) => {
+      const appUrl = document.querySelector('script[src*="/assets/app.js"]').src;
+      const rendererUrl = new URL('fieldnotes-renderer-browser.js', appUrl).href;
+      const { hydrateMermaid, normalizeRenderedDom } = await import(rendererUrl);
+      const fixtureDocument = new DOMParser().parseFromString(`<main id="fixture">${html}</main>`, 'text/html');
+      const fixtureRoot = fixtureDocument.querySelector('main');
+      const requiresLayout = fixtureRoot.querySelector('.fieldnotes-mermaid') !== null;
+      if (requiresLayout) document.body.append(fixtureRoot);
+      try {
+        await hydrateMermaid(fixtureRoot);
+        return normalizeRenderedDom(fixtureRoot);
+      } finally {
+        fixtureRoot.remove();
+      }
+    }, fixture);
+    if (actual !== fixture.expected) {
+      const mismatch = [...actual].findIndex((character, index) => character !== fixture.expected[index]);
+      throw new Error(`${fixture.name} hydrated DOM mismatch at ${mismatch}; actual=${actual.slice(Math.max(0, mismatch - 120), mismatch + 240)}; expected=${fixture.expected.slice(Math.max(0, mismatch - 120), mismatch + 240)}`);
+    }
   }
 
   check(remoteScripts.length === 0, `No remote scripts requested: ${remoteScripts.join(', ')}`);
@@ -174,7 +277,7 @@ function command(args) {
 
 try {
   await access(outputDir);
-  await writeFile(runner, `(${browserChecks.toString().replace('__BASE__', base)})`);
+  await writeFile(runner, `(${browserChecks.toString().replace('__BASE__', base).replace('"__CONFORMANCE__"', JSON.stringify(browserConformance))})`);
   await command(['open', base + '/notes/renderer-contract/', '--browser=chrome']);
   const result = await command(['run-code', `--filename=${runner}`]);
   process.stdout.write(result);
