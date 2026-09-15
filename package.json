@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "A small, terminal-inspired engineering notebook.",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/serve.mjs",
@@ -12,5 +14,8 @@
   },
   "dependencies": {
     "@cruciblesoftware/fieldnotes-renderer": "0.1.0"
+  },
+  "devDependencies": {
+    "@playwright/cli": "0.1.20"
   }
 }

@@ -21,7 +21,7 @@ npm run build
 node tests/navigation-markdown.browser.js
 ```
 
-The browser gate is self-contained: it creates temporary Markdown fixtures, starts its own local server, runs the Playwright checks, and removes the temporary files. For local reading and styling work, run:
+The browser gate is self-contained: `npm ci` installs its pinned local Playwright CLI, so no global CLI is required. It creates temporary Markdown fixtures, starts its own local server, runs the browser checks, and removes the temporary files. For local reading and styling work, run:
 
 ```sh
 node scripts/serve.mjs

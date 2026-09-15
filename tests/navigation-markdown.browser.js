@@ -1,9 +1,23 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { access, cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { extname, join, resolve, sep } from 'node:path';
+import { dirname, extname, join, resolve, sep } from 'node:path';
 import { build } from '../scripts/build.mjs';
+
+const require = createRequire(import.meta.url);
+let playwrightCli;
+try {
+  const packagePath = require.resolve('@playwright/cli/package.json');
+  const packageMetadata = JSON.parse(await readFile(packagePath, 'utf8'));
+  const binPath = packageMetadata.bin?.['playwright-cli'];
+  if (typeof binPath !== 'string' || binPath === '') throw new Error('package does not declare the playwright-cli binary');
+  playwrightCli = resolve(dirname(packagePath), binPath);
+  await access(playwrightCli);
+} catch (error) {
+  throw new Error('Local @playwright/cli is unavailable. Run npm ci before the browser gate.', { cause: error });
+}
 
 const session = `fieldnotes-markdown-${process.pid}`;
 const workspace = await mkdtemp(join(tmpdir(), 'fieldnotes-browser-'));
@@ -306,7 +320,11 @@ async function browserChecks(page) {
 
 function command(args) {
   return new Promise((resolveCommand, rejectCommand) => {
-    const child = spawn('playwright-cli', [`-s=${session}`, ...args], { cwd: resolve('.'), stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, [playwrightCli, `-s=${session}`, ...args], {
+      cwd: resolve('.'),
+      env: { ...process.env, NO_UPDATE_NOTIFIER: '1' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let output = '';
     child.stdout.on('data', (chunk) => { output += chunk; });
     child.stderr.on('data', (chunk) => { output += chunk; });
