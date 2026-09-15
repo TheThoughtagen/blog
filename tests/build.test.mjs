@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { access, cp, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels, build } from '../scripts/build.mjs';
+import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels, build, loadLocalStylesheetBundle } from '../scripts/build.mjs';
 import { site } from '../site.config.mjs';
 import { articles } from '../content/articles.mjs';
 import { externalPosts } from '../content/links.mjs';
@@ -444,6 +444,37 @@ test('build installs the self-contained renderer browser export beside the modul
   const imports = [...renderer.matchAll(/^\s*import(?:\s+[^;\n]+?\s+from\s+|\s*)['"]([^'"]+)['"]/gmu)].map((match) => match[1]);
   assert.deepEqual(imports, []);
   assert.match(home, /<script type="module" src="\/assets\/app\.js\?v=[a-f0-9]{12}"><\/script>/);
+});
+
+test('build publishes versioned local KaTeX styles and every referenced font', async () => {
+  const rootDir = await createBuildRoot();
+  const outputDir = join(rootDir, 'site');
+  await build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir });
+
+  const home = await readFile(join(outputDir, 'index.html'), 'utf8');
+  const katex = await readFile(join(outputDir, 'assets/katex.min.css'), 'utf8');
+  const stylesheetVersion = home.match(/\/assets\/katex\.min\.css\?v=([a-f0-9]{12})/)?.[1];
+  assert.ok(stylesheetVersion, 'KaTeX stylesheet is linked with the publication asset version');
+  assert.match(katex, /\.katex \.katex-mathml\{[^}]*clip-path:inset\(50%\)[^}]*position:absolute[^}]*width:1px/);
+  assert.match(katex, /\.katex \.katex-html>/);
+
+  const fontReferences = [...katex.matchAll(/url\(fonts\/([A-Za-z0-9_.-]+)\?v=([a-f0-9]{12})\)/g)]
+    .map(([, name, version]) => ({ name, version }));
+  assert.ok(fontReferences.length >= 20, 'KaTeX CSS retains its complete local font set');
+  assert.ok(fontReferences.every(({ version }) => version === stylesheetVersion));
+  for (const { name } of fontReferences) {
+    assert.ok((await readFile(join(outputDir, 'assets/fonts', name))).byteLength > 0, name);
+  }
+});
+
+test('stylesheet asset collection fails closed on missing and escaping font references', async () => {
+  const workspace = await mkdtemp(join(tmpdir(), 'fieldnotes-stylesheet-'));
+  await mkdir(join(workspace, 'fonts'));
+  const stylesheet = join(workspace, 'styles.css');
+  await writeFile(stylesheet, '@font-face{src:url(fonts/missing.woff2)}');
+  await assert.rejects(loadLocalStylesheetBundle(stylesheet), /ENOENT|missing\.woff2/);
+  await writeFile(stylesheet, '@font-face{src:url(..\/escape.woff2)}');
+  await assert.rejects(loadLocalStylesheetBundle(stylesheet), /local font path|escape/i);
 });
 
 test('build versions the search index from publication content and links the application request to it', async () => {

@@ -90,7 +90,7 @@ function shell(site, { title, description = site.description, path = '/', active
 <html lang="en" data-theme="green">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#111510"><title>${e(pageTitle)}</title><meta name="description" content="${e(description)}">
 <meta property="og:title" content="${e(pageTitle)}"><meta property="og:description" content="${e(description)}"><meta property="og:type" content="${article ? 'article' : 'website'}">${absolute ? `<link rel="canonical" href="${e(absolute)}"><meta property="og:url" content="${e(absolute)}">` : ''}${article ? `<meta property="article:published_time" content="${e(article.date)}">` : ''}
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="alternate" type="application/rss+xml" title="${e(site.name)} RSS" href="/feed.xml"><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/mascot.css"><link rel="stylesheet" href="/assets/boot.css"><script src="/assets/theme.js"></script><script defer src="/assets/boot.js"></script><script type="module" src="/assets/app.js"></script></head>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="alternate" type="application/rss+xml" title="${e(site.name)} RSS" href="/feed.xml"><link rel="stylesheet" href="/assets/katex.min.css"><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/mascot.css"><link rel="stylesheet" href="/assets/boot.css"><script src="/assets/theme.js"></script><script defer src="/assets/boot.js"></script><script type="module" src="/assets/app.js"></script></head>
 <body data-page="${article ? 'article' : active}"><template id="mascot-template">${renderMascot()}</template><a class="skip-link" href="#main">Skip to content</a><div class="read-progress" aria-hidden="true"></div>
 <header class="site-header wrap"><a class="brand" href="/" aria-label="${e(site.name)} home"><span class="brand-symbol" aria-hidden="true">f<span>_</span></span><span>${e(site.name)}<span class="brand-cursor">_</span></span></a><nav aria-label="Main navigation"><a href="/#notebook" ${active === 'articles' ? 'aria-current="page"' : ''}>Articles</a><a href="/lab/" ${active === 'lab' ? 'aria-current="page"' : ''}>The lab</a><a href="/about/" ${active === 'about' ? 'aria-current="page"' : ''}>About Patrick</a><a class="nav-call" href="/connect/" ${active === 'connect' ? 'aria-current="page"' : ''}>Say hello &#8599;</a></nav><div class="header-tools"><button class="search-trigger" data-search aria-label="Search notes and commands"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path></svg><span>Search</span><kbd>/</kbd></button><button class="theme-toggle" data-theme-toggle aria-label="Change color theme"><span aria-hidden="true">&#9680;</span><span class="theme-name">Green</span></button></div></header>
 <main id="main" tabindex="-1">${body}${article ? `<div class="wrap">${renderChannels(site)}</div>` : ''}</main>
@@ -250,6 +250,25 @@ function isStrictDescendant(parent, candidate) {
   return path !== '' && path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
+export async function loadLocalStylesheetBundle(stylesheetPath) {
+  const stylesheet = await realpath(stylesheetPath);
+  const directory = await realpath(dirname(stylesheet));
+  const fontDirectory = await realpath(join(directory, 'fonts'));
+  const css = await readFile(stylesheet, 'utf8');
+  const references = [...css.matchAll(/url\(([^)]+)\)/g)].map((match) => match[1].trim().replace(/^(['"])(.*)\1$/, '$2'));
+  const fonts = new Map();
+  for (const reference of references) {
+    if (!/^fonts\/[A-Za-z0-9_.-]+\.(?:woff2?|ttf)$/u.test(reference)) {
+      throw new Error(`Stylesheet asset must be a local font path: ${reference}`);
+    }
+    const source = await realpath(join(directory, reference));
+    if (!isStrictDescendant(fontDirectory, source)) throw new Error(`Stylesheet font escapes its package directory: ${reference}`);
+    fonts.set(basename(reference), await readFile(source));
+  }
+  if (fonts.size === 0) throw new Error('Stylesheet must reference at least one local font.');
+  return { css, fonts };
+}
+
 async function validateOutputDestination(rootDir, outputDir) {
   const [root, destination, publicDir] = await Promise.all([
     realpath(resolve(rootDir)),
@@ -282,18 +301,26 @@ function preflightArticleAssets(destination, articles) {
 export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   const destination = await validateOutputDestination(rootDir, outputDir);
   preflightArticleAssets(destination, articles);
+  const rendererEntry = import.meta.resolve('@cruciblesoftware/fieldnotes-renderer');
+  const katexPath = fileURLToPath(import.meta.resolve('katex/dist/katex.min.css', rendererEntry));
+  const katex = await loadLocalStylesheetBundle(katexPath);
   const archives = tagArchives(articles);
   await rm(destination, { recursive: true, force: true });
   await mkdir(destination, { recursive: true });
   await cp(join(rootDir, 'public'), destination, { recursive: true });
   const assets = join(destination, 'assets');
   await cp(fileURLToPath(import.meta.resolve('@cruciblesoftware/fieldnotes-renderer/browser')), join(assets, 'fieldnotes-renderer-browser.js'));
+  await writeFile(join(assets, 'katex.min.css'), katex.css);
+  await mkdir(join(assets, 'fonts'), { recursive: true });
+  for (const [name, bytes] of katex.fonts) await writeFile(join(assets, 'fonts', name), bytes);
   const searchData = JSON.stringify({ site, articles: articles.map(searchArticle), externalPosts: links, ignitionTools: site.ignitionTools });
   const codeFiles = (await readdir(assets)).filter(name => /\.(js|css)$/.test(name)).sort();
   const hash = createHash('sha256');
   for (const name of codeFiles) hash.update(name).update(await readFile(join(assets, name)));
+  for (const [name, bytes] of [...katex.fonts].sort(([left], [right]) => left.localeCompare(right))) hash.update(name).update(bytes);
   hash.update('data.json').update(searchData);
   const version = hash.digest('hex').slice(0, 12);
+  await writeFile(join(assets, 'katex.min.css'), katex.css.replace(/url\((['"]?)(fonts\/[A-Za-z0-9_.-]+\.(?:woff2?|ttf))\1\)/g, `url($1$2?v=${version}$1)`));
   for (const name of codeFiles.filter(name => name.endsWith('.js'))) {
     const code = await readFile(join(assets, name), 'utf8');
     await writeFile(join(assets, name), code

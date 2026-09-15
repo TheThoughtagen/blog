@@ -77,6 +77,19 @@ const browserConformance = await Promise.all(conformanceCases.map(async (fixture
   html: (await renderDocument(fixture.source, fixture.options)).html,
   expected: fixture.expected.hydratedDom,
 })));
+const articleShell = await readFile(join(outputDir, 'notes/renderer-contract/index.html'), 'utf8');
+const articleOpen = '<article class="article-body">';
+const articleBodyStart = articleShell.indexOf(articleOpen) + articleOpen.length;
+const articleBodyEnd = articleShell.indexOf('<div class="article-end">', articleBodyStart);
+if (articleBodyStart < articleOpen.length || articleBodyEnd < articleBodyStart) throw new Error('Generated article shell markers are missing.');
+for (const fixture of browserConformance) {
+  const directory = join(outputDir, '__conformance', fixture.name);
+  await mkdir(join(directory, 'images'), { recursive: true });
+  const shell = `${articleShell.slice(0, articleBodyStart)}<main id="fixture">${fixture.html}</main>${articleShell.slice(articleBodyEnd)}`;
+  await writeFile(join(directory, 'index.html'), shell);
+  await writeFile(join(directory, 'images/chart.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 10 10 0" stroke="black"/></svg>');
+  await writeFile(join(directory, 'images/unsafe.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'));
+}
 
 const server = createServer(async (request, response) => {
   try {
@@ -106,9 +119,13 @@ async function browserChecks(page) {
   const localFailures = [];
   const pageErrors = [];
   const remoteScripts = [];
+  const consoleErrors = [];
   const searchIndexRequests = [];
   const check = (ok, label) => { if (!ok) throw new Error(label); };
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
   page.on('response', (response) => {
     if (response.url().startsWith(base) && response.status() >= 400) {
       localFailures.push(`${response.status()} ${response.url()}`);
@@ -117,11 +134,20 @@ async function browserChecks(page) {
   await page.route('**/*', async (route) => {
     const request = route.request();
     const url = request.url();
+    if (url.startsWith('https://api.github.com/')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    }
     if (url.startsWith(base)) {
       if (url.includes('/assets/data.json')) searchIndexRequests.push(url);
       return route.continue();
     }
     if (request.resourceType() === 'script') remoteScripts.push(url);
+    if (request.resourceType() === 'image') {
+      return route.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>' });
+    }
+    if (request.resourceType() === 'document') {
+      return route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Blocked fixture embed</title>' });
+    }
     return route.abort('blockedbyclient');
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -155,6 +181,21 @@ async function browserChecks(page) {
   for (const [selector, label] of richSelectors) {
     check(await page.locator(selector).first().isVisible(), `${label} is visibly rendered in the article shell`);
   }
+  const mathLayout = await page.locator('.article-body .katex').evaluate((node) => {
+    const mathml = node.querySelector('.katex-mathml');
+    const html = node.querySelector('.katex-html');
+    const mathmlStyle = getComputedStyle(mathml);
+    const htmlStyle = getComputedStyle(html);
+    return {
+      mathmlPosition: mathmlStyle.position,
+      mathmlWidth: mathml.getBoundingClientRect().width,
+      mathmlHeight: mathml.getBoundingClientRect().height,
+      htmlVisible: htmlStyle.display !== 'none' && html.getBoundingClientRect().width > 0 && html.getBoundingClientRect().height > 0,
+      fontFamily: getComputedStyle(node).fontFamily,
+    };
+  });
+  check(mathLayout.mathmlPosition === 'absolute' && mathLayout.mathmlWidth <= 1 && mathLayout.mathmlHeight <= 1, 'KaTeX keeps accessible MathML visually hidden');
+  check(mathLayout.htmlVisible && mathLayout.fontFamily.includes('KaTeX_Main'), 'KaTeX lays out one visible formatted HTML branch with its local font');
   const desktopLayout = await page.evaluate(() => ({
     columns: getComputedStyle(document.querySelector('.reading-layout')).gridTemplateColumns,
     tocPosition: getComputedStyle(document.querySelector('.reading-aside')).position,
@@ -237,26 +278,28 @@ async function browserChecks(page) {
   }
 
   for (const fixture of conformance) {
-    const actual = await page.evaluate(async ({ html }) => {
+    await page.goto(`${base}/__conformance/${fixture.name}/`);
+    await page.waitForFunction(() => document.querySelectorAll('.article-body pre.fieldnotes-mermaid').length === 0);
+    check(await page.locator('.article-body > #fixture').count() === 1, `${fixture.name} runs inside a generated article shell`);
+    if (fixture.name === 'mermaid') {
+      check(await page.locator('.article-body #fixture > svg.flowchart').count() === 1, 'App hydration renders the valid conformance diagram');
+      check(await page.locator('.article-body #fixture > .fieldnotes-mermaid-error').count() === 1, 'App hydration preserves the malformed conformance diagram as an error state');
+    }
+    const actual = await page.evaluate(async () => {
       const appUrl = document.querySelector('script[src*="/assets/app.js"]').src;
-      const rendererUrl = new URL('fieldnotes-renderer-browser.js', appUrl).href;
-      const { hydrateMermaid, normalizeRenderedDom } = await import(rendererUrl);
-      const fixtureDocument = new DOMParser().parseFromString(`<main id="fixture">${html}</main>`, 'text/html');
-      const fixtureRoot = fixtureDocument.querySelector('main');
-      const requiresLayout = fixtureRoot.querySelector('.fieldnotes-mermaid') !== null;
-      if (requiresLayout) document.body.append(fixtureRoot);
-      try {
-        await hydrateMermaid(fixtureRoot);
-        return normalizeRenderedDom(fixtureRoot);
-      } finally {
-        fixtureRoot.remove();
-      }
-    }, fixture);
+      const { normalizeRenderedDom } = await import(appUrl);
+      return normalizeRenderedDom(document.querySelector('.article-body #fixture'));
+    });
     if (actual !== fixture.expected) {
       const mismatch = [...actual].findIndex((character, index) => character !== fixture.expected[index]);
       throw new Error(`${fixture.name} hydrated DOM mismatch at ${mismatch}; actual=${actual.slice(Math.max(0, mismatch - 120), mismatch + 240)}; expected=${fixture.expected.slice(Math.max(0, mismatch - 120), mismatch + 240)}`);
     }
   }
+
+  const unexpectedConsoleErrors = consoleErrors.filter((message) => !/^Error: Parse error on line \d+:/u.test(message));
+  const malformedDiagnostics = consoleErrors.filter((message) => /^Error: Parse error on line \d+:/u.test(message));
+  check(malformedDiagnostics.length <= 1, `Malformed Mermaid emits at most one expected parser diagnostic: ${malformedDiagnostics.join(' | ')}`);
+  check(unexpectedConsoleErrors.length === 0, `No unexpected browser console errors: ${unexpectedConsoleErrors.join(' | ')}`);
 
   check(remoteScripts.length === 0, `No remote scripts requested: ${remoteScripts.join(', ')}`);
   check(localFailures.length === 0, `No local asset or chunk failures: ${localFailures.join(', ')}`);
@@ -277,7 +320,8 @@ function command(args) {
 
 try {
   await access(outputDir);
-  await writeFile(runner, `(${browserChecks.toString().replace('__BASE__', base).replace('"__CONFORMANCE__"', JSON.stringify(browserConformance))})`);
+  const browserExpectations = browserConformance.map(({ name, expected }) => ({ name, expected }));
+  await writeFile(runner, `(${browserChecks.toString().replace('__BASE__', base).replace('"__CONFORMANCE__"', JSON.stringify(browserExpectations))})`);
   await command(['open', base + '/notes/renderer-contract/', '--browser=chrome']);
   const result = await command(['run-code', `--filename=${runner}`]);
   process.stdout.write(result);
