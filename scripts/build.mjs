@@ -168,7 +168,11 @@ function tagArchives(articles) {
   for (const article of articles) {
     for (const label of article.tags) {
       const slug = tagSlug(label);
-      const archive = archives.get(slug) ?? { slug, label, articles: [] };
+      const directorySlug = decodeURIComponent(slug);
+      if (!/^[\p{Letter}\p{Number}]+(?:-[\p{Letter}\p{Number}]+)*$/u.test(directorySlug)) {
+        throw new Error(`Tag directory slug is unsafe: ${slug}`);
+      }
+      const archive = archives.get(slug) ?? { slug, directorySlug, label, articles: [] };
       archive.articles.push(article);
       archives.set(slug, archive);
     }
@@ -195,8 +199,15 @@ function aboutPage(site) {
 
 export function renderFeed(site, notes) {
   const origin = site.siteUrl;
+  const xmlText = (value) => e([...String(value)].filter((character) => {
+    const point = character.codePointAt(0);
+    return point === 0x9 || point === 0xa || point === 0xd
+      || (point >= 0x20 && point <= 0xd7ff)
+      || (point >= 0xe000 && point <= 0xfffd)
+      || (point >= 0x10000 && point <= 0x10ffff);
+  }).join(''));
   // A preview without a known origin deliberately has no misleading absolute links.
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${e(site.name)}</title><link>${e(origin || '/')}</link><description>${e(site.description)}</description><language>en</language>${notes.map((note) => { const url = origin ? new URL(notePath(note), origin).href : notePath(note); return `<item><title>${e(note.title)}</title><link>${e(url)}</link><guid isPermaLink="${Boolean(origin)}">${e(url)}</guid><description>${e(note.description)}</description><pubDate>${new Date(`${note.date}T12:00:00Z`).toUTCString()}</pubDate>${[note.category, ...note.tags].map((classification) => `<category>${e(classification)}</category>`).join('')}</item>`; }).join('')}</channel></rss>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${xmlText(site.name)}</title><link>${xmlText(origin || '/')}</link><description>${xmlText(site.description)}</description><language>en</language>${notes.map((note) => { const url = origin ? new URL(notePath(note), origin).href : notePath(note); return `<item><title>${xmlText(note.title)}</title><link>${xmlText(url)}</link><guid isPermaLink="${Boolean(origin)}">${xmlText(url)}</guid><description>${xmlText(note.description)}</description><pubDate>${new Date(`${note.date}T12:00:00Z`).toUTCString()}</pubDate>${[note.category, ...note.tags].map((classification) => `<category>${xmlText(classification)}</category>`).join('')}</item>`; }).join('')}</channel></rss>`;
 }
 
 function flattenHeadings(headings) {
@@ -277,15 +288,19 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   await cp(join(rootDir, 'public'), destination, { recursive: true });
   const assets = join(destination, 'assets');
   await cp(fileURLToPath(import.meta.resolve('@cruciblesoftware/fieldnotes-renderer/browser')), join(assets, 'fieldnotes-renderer-browser.js'));
+  const searchData = JSON.stringify({ site, articles: articles.map(searchArticle), externalPosts: links, ignitionTools: site.ignitionTools });
   const codeFiles = (await readdir(assets)).filter(name => /\.(js|css)$/.test(name)).sort();
   const hash = createHash('sha256');
   for (const name of codeFiles) hash.update(name).update(await readFile(join(assets, name)));
+  hash.update('data.json').update(searchData);
   const version = hash.digest('hex').slice(0, 12);
   for (const name of codeFiles.filter(name => name.endsWith('.js'))) {
     const code = await readFile(join(assets, name), 'utf8');
-    await writeFile(join(assets, name), code.replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`));
+    await writeFile(join(assets, name), code
+      .replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`)
+      .replaceAll('__FIELDNOTES_BUILD_VERSION__', version));
   }
-  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.slug}/index.html`, tagPage(site, archive)])];
+  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.directorySlug}/index.html`, tagPage(site, archive)])];
   for (const [path, html] of pages) {
     await mkdir(resolve(destination, path, '..'), { recursive: true });
     await writeFile(join(destination, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`));
@@ -299,7 +314,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
       await cp(asset.resolvedPath, assetDestination);
     }
   }
-  await writeFile(join(assets, 'data.json'), JSON.stringify({ site, articles: articles.map(searchArticle), externalPosts: links, ignitionTools: site.ignitionTools }));
+  await writeFile(join(assets, 'data.json'), searchData);
   await writeFile(join(destination, 'feed.xml'), renderFeed(site, articles));
   await writeFile(join(destination, 'robots.txt'), `User-agent: *\nAllow: /\n${site.siteUrl ? `Sitemap: ${site.siteUrl}sitemap.xml\n` : ''}`);
   if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', ...articles.map(notePath), ...archives.map((archive) => `/tags/${archive.slug}/`)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);

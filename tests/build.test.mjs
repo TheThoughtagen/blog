@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { access, cp, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -262,6 +263,29 @@ Newer body.
   assert.match(sitemap, /<loc>https:\/\/awake-iris-z6ww\.here\.now\/tags\/reliability\/<\/loc>/);
 });
 
+test('build materializes Unicode tag archives at decoded static-server paths', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'unicode-tag'), { recursive: true });
+  await writeFile(join(contentDir, 'unicode-tag/index.md'), `---
+title: "Unicode tag"
+description: "A decoded route fixture."
+date: "2026-09-15"
+category: "Development"
+tags: ["Café"]
+---
+Body.
+`);
+
+  await build({ rootDir, contentDir, outputDir });
+
+  await access(join(outputDir, 'tags/café/index.html'));
+  await assert.rejects(access(join(outputDir, 'tags/caf%C3%A9/index.html')), { code: 'ENOENT' });
+  const article = await readFile(join(outputDir, 'notes/unicode-tag/index.html'), 'utf8');
+  assert.match(article, /href="\/tags\/caf%C3%A9\/"[^>]*>Café<\/a>/);
+});
+
 test('build emits XML-safe category and tag classifications for every RSS item', async () => {
   const rootDir = await createBuildRoot();
   const contentDir = join(rootDir, 'posts');
@@ -420,6 +444,63 @@ test('build installs the self-contained renderer browser export beside the modul
   const imports = [...renderer.matchAll(/^\s*import(?:\s+[^;\n]+?\s+from\s+|\s*)['"]([^'"]+)['"]/gmu)].map((match) => match[1]);
   assert.deepEqual(imports, []);
   assert.match(home, /<script type="module" src="\/assets\/app\.js\?v=[a-f0-9]{12}"><\/script>/);
+});
+
+test('build versions the search index from publication content and links the application request to it', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'versioned-search'), { recursive: true });
+  const post = (body) => `---
+title: "Versioned search"
+description: "Cache-safe search data."
+date: "2026-09-15"
+category: "Development"
+---
+${body}
+`;
+  await writeFile(join(contentDir, 'versioned-search/index.md'), post('First searchable body.'));
+  await build({ rootDir, contentDir, outputDir });
+  const firstApp = await readFile(join(outputDir, 'assets/app.js'), 'utf8');
+  const firstHome = await readFile(join(outputDir, 'index.html'), 'utf8');
+  const firstVersion = firstApp.match(/fetch\('\/assets\/data\.json\?v=([a-f0-9]{12})'/)?.[1];
+  assert.ok(firstVersion, 'application fetches an explicitly versioned search index');
+  assert.match(firstHome, new RegExp(`/assets/app\\.js\\?v=${firstVersion}`));
+
+  await writeFile(join(contentDir, 'versioned-search/index.md'), post('Second independently searchable body.'));
+  await build({ rootDir, contentDir, outputDir });
+  const secondApp = await readFile(join(outputDir, 'assets/app.js'), 'utf8');
+  const secondHome = await readFile(join(outputDir, 'index.html'), 'utf8');
+  const secondVersion = secondApp.match(/fetch\('\/assets\/data\.json\?v=([a-f0-9]{12})'/)?.[1];
+  assert.ok(secondVersion);
+  assert.notEqual(secondVersion, firstVersion, 'search-content changes invalidate the asset version');
+  assert.match(secondHome, new RegExp(`/assets/app\\.js\\?v=${secondVersion}`));
+});
+
+test('build strips XML 1.0-forbidden controls from every RSS metadata field', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'xml-controls'), { recursive: true });
+  await writeFile(join(contentDir, 'xml-controls/index.md'), `---
+title: "Control\\u0001title"
+description: "Description\\u000bvalue."
+date: "2026-09-15"
+category: "Development"
+tags: ["Reliability\\u0000tag"]
+---
+Body.
+`);
+
+  await build({ rootDir, contentDir, outputDir });
+
+  const feed = await readFile(join(outputDir, 'feed.xml'), 'utf8');
+  assert.doesNotMatch(feed, /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u);
+  assert.match(feed, /<title>Controltitle<\/title>/);
+  assert.match(feed, /<description>Descriptionvalue\.<\/description>/);
+  assert.match(feed, /<category>Reliabilitytag<\/category>/);
+  const parsed = spawnSync('xmllint', ['--noout', '-'], { input: feed, encoding: 'utf8' });
+  if (parsed.error?.code !== 'ENOENT') assert.equal(parsed.status, 0, parsed.stderr);
 });
 
 test('build supports an empty notebook without note URLs, feed items, or heading navigation', async () => {

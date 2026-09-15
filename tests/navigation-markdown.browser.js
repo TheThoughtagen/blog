@@ -32,7 +32,7 @@ title: "Renderer contract"
 description: "A browser conformance fixture."
 date: "2026-09-15"
 category: "Development"
-tags: ["Rendering"]
+tags: ["Café"]
 featured: true
 ---
 ## Observable heading
@@ -73,6 +73,7 @@ async function browserChecks(page) {
   const localFailures = [];
   const pageErrors = [];
   const remoteScripts = [];
+  const searchIndexRequests = [];
   const check = (ok, label) => { if (!ok) throw new Error(label); };
   page.on('pageerror', (error) => pageErrors.push(error.message));
   page.on('response', (response) => {
@@ -83,7 +84,10 @@ async function browserChecks(page) {
   await page.route('**/*', async (route) => {
     const request = route.request();
     const url = request.url();
-    if (url.startsWith(base)) return route.continue();
+    if (url.startsWith(base)) {
+      if (url.includes('/assets/data.json')) searchIndexRequests.push(url);
+      return route.continue();
+    }
     if (request.resourceType() === 'script') remoteScripts.push(url);
     return route.abort('blockedbyclient');
   });
@@ -130,6 +134,11 @@ async function browserChecks(page) {
 
   await page.setViewportSize({ width: 390, height: 844 });
   check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Article controls and rendered Markdown fit mobile');
+  check(searchIndexRequests.length > 0 && searchIndexRequests.every((url) => /\/assets\/data\.json\?v=[a-f0-9]{12}$/.test(url)), 'Cmd+K requests the current versioned search index');
+
+  await page.locator('a.tag-link', { hasText: 'Café' }).click();
+  await page.waitForURL(/\/tags\/caf%C3%A9\/$/i);
+  check(await page.locator('h1').textContent() === 'Café.', 'Unicode tag archive is reachable through a decoded static route');
 
   await page.goto(base + '/lab/');
   const cards = await page.locator('.ignition-project-card').evaluateAll((elements) => elements.map((card) => ({

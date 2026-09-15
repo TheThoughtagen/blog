@@ -88,7 +88,7 @@ let data;
 let dataPromise;
 let dataError = false;
 function loadData() {
-  return dataPromise ||= fetch('/assets/data.json', { signal: AbortSignal.timeout(8000) }).then((response) => {
+  return dataPromise ||= fetch('/assets/data.json?v=__FIELDNOTES_BUILD_VERSION__', { signal: AbortSignal.timeout(8000) }).then((response) => {
     if (!response.ok) throw new Error('Search index unavailable');
     return response.json();
   }).then((result) => { data = result; dataError = false; connectGithub(result.site.github); return result; }).catch(() => { dataError = true; return null; });
