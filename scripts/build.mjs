@@ -5,7 +5,7 @@ import { resolve, join, relative, isAbsolute, dirname, basename, sep } from 'nod
 import { site as sourceSite } from '../site.config.mjs';
 import { externalPosts } from '../content/links.mjs';
 import { renderMascot } from './mascot.mjs';
-import { loadPosts, publishedPosts, selectFeatured } from './posts.mjs';
+import { loadPosts, publishedPosts, selectFeatured, tagSlug } from './posts.mjs';
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 export const categories = ['Industrial software', 'Development', 'Leadership', 'AI & ML'];
@@ -158,9 +158,27 @@ function articlePage(site, article, index, articles) {
   const navigation = article.rendered.toc.length
     ? `<aside class="reading-aside"><nav aria-label="On this page"><span class="overline">IN THIS NOTE</span>${tocItems(article.rendered.toc)}</nav><div class="reading-aside-tip"><kbd>gg</kbd> back to top<br><kbd>?</kbd> keyboard shortcuts</div></aside>`
     : '';
-  const body = `<div class="wrap article-wrap"><a class="back-link" href="/#notebook">&#8592; Back to the notebook</a><header class="article-header"><div class="note-meta">${metadata(article)}</div><h1>${e(article.title)}<span class="accent">.</span></h1><p class="article-deck">${e(article.description)}</p><div class="article-byline"><a href="/about/">${e(site.author)}</a><time datetime="${article.date}">${dateLabel(article.date)}</time><span>${article.readingMinutes} min read</span></div></header><div class="reading-layout"><article class="article-body">${article.rendered.html}<div class="article-end"><span>// END OF NOTE</span><div>${article.tags.map((tag) => `<span class="tag">${e(tag)}</span>`).join('')}</div><div class="article-share"><button class="button" data-copy-markdown data-enhanced hidden>Copy Markdown</button><button class="button" data-copy-link>Copy article link &#8599;</button><a class="text-link" href="${notePath(article)}index.md" download="${e(article.slug)}.md">Download .md</a></div></div></article>${navigation}</div>${authorCard(site)}<a class="next-note note-link" href="${notePath(next)}"><span class="overline">NEXT NOTE</span><h2>${e(next.title)} <span>&#8594;</span></h2><span>${e(next.category)} / ${next.readingMinutes} min read</span></a></div>`;
+  const body = `<div class="wrap article-wrap"><a class="back-link" href="/#notebook">&#8592; Back to the notebook</a><header class="article-header"><div class="note-meta">${metadata(article)}</div><h1>${e(article.title)}<span class="accent">.</span></h1><p class="article-deck">${e(article.description)}</p><div class="article-byline"><a href="/about/">${e(site.author)}</a><time datetime="${article.date}">${dateLabel(article.date)}</time><span>${article.readingMinutes} min read</span></div></header><div class="reading-layout"><article class="article-body">${article.rendered.html}<div class="article-end"><span>// END OF NOTE</span><div>${article.tags.map((tag) => `<a class="tag tag-link" href="/tags/${tagSlug(tag)}/">${e(tag)}</a>`).join('')}</div><div class="article-share"><button class="button" data-copy-markdown data-enhanced hidden>Copy Markdown</button><button class="button" data-copy-link>Copy article link &#8599;</button><a class="text-link" href="${notePath(article)}index.md" download="${e(article.slug)}.md">Download .md</a></div></div></article>${navigation}</div>${authorCard(site)}<a class="next-note note-link" href="${notePath(next)}"><span class="overline">NEXT NOTE</span><h2>${e(next.title)} <span>&#8594;</span></h2><span>${e(next.category)} / ${next.readingMinutes} min read</span></a></div>`;
   const markdownData = `<script type="application/json" id="article-markdown">${JSON.stringify(article.source).replace(/</g, '\\u003c')}</script>`;
   return shell(site, { title: article.title, description: article.description, path: notePath(article), body: body + markdownData, article });
+}
+
+function tagArchives(articles) {
+  const archives = new Map();
+  for (const article of articles) {
+    for (const label of article.tags) {
+      const slug = tagSlug(label);
+      const archive = archives.get(slug) ?? { slug, label, articles: [] };
+      archive.articles.push(article);
+      archives.set(slug, archive);
+    }
+  }
+  return [...archives.values()].sort((left, right) => left.slug.localeCompare(right.slug));
+}
+
+function tagPage(site, archive) {
+  const body = `<div class="wrap secondary-page tag-archive"><a class="back-link" href="/#notebook">&#8592; Back to the notebook</a><header class="secondary-header"><div><div class="overline">TAG ARCHIVE / ${archive.articles.length} ${archive.articles.length === 1 ? 'NOTE' : 'NOTES'}</div><h1>${e(archive.label)}<span class="accent">.</span></h1><p>Published field notes tagged ${e(archive.label)}.</p></div></header><div class="note-grid">${archive.articles.map((article, index) => noteCard(article, index)).join('')}</div></div>`;
+  return shell(site, { title: `Notes tagged ${archive.label}`, path: `/tags/${archive.slug}/`, body });
 }
 
 function labPage(site) {
@@ -178,10 +196,16 @@ function aboutPage(site) {
 export function renderFeed(site, notes) {
   const origin = site.siteUrl;
   // A preview without a known origin deliberately has no misleading absolute links.
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${e(site.name)}</title><link>${e(origin || '/')}</link><description>${e(site.description)}</description><language>en</language>${notes.map((note) => { const url = origin ? new URL(notePath(note), origin).href : notePath(note); return `<item><title>${e(note.title)}</title><link>${e(url)}</link><guid isPermaLink="${Boolean(origin)}">${e(url)}</guid><description>${e(note.description)}</description><pubDate>${new Date(`${note.date}T12:00:00Z`).toUTCString()}</pubDate><category>${e(note.category)}</category></item>`; }).join('')}</channel></rss>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${e(site.name)}</title><link>${e(origin || '/')}</link><description>${e(site.description)}</description><language>en</language>${notes.map((note) => { const url = origin ? new URL(notePath(note), origin).href : notePath(note); return `<item><title>${e(note.title)}</title><link>${e(url)}</link><guid isPermaLink="${Boolean(origin)}">${e(url)}</guid><description>${e(note.description)}</description><pubDate>${new Date(`${note.date}T12:00:00Z`).toUTCString()}</pubDate>${[note.category, ...note.tags].map((classification) => `<category>${e(classification)}</category>`).join('')}</item>`; }).join('')}</channel></rss>`;
+}
+
+function flattenHeadings(headings) {
+  return headings.flatMap((heading) => [heading.text, ...flattenHeadings(heading.children ?? [])]);
 }
 
 function searchArticle(article) {
+  const headings = flattenHeadings(article.rendered.toc);
+  const body = article.rendered.plainText;
   return {
     slug: article.slug,
     title: article.title,
@@ -192,6 +216,9 @@ function searchArticle(article) {
     readingMinutes: article.readingMinutes,
     featured: article.featured,
     url: notePath(article),
+    headings,
+    body,
+    searchText: [article.title, article.description, article.category, ...article.tags, ...headings, body].join(' '),
   };
 }
 
@@ -244,10 +271,12 @@ function preflightArticleAssets(destination, articles) {
 export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   const destination = await validateOutputDestination(rootDir, outputDir);
   preflightArticleAssets(destination, articles);
+  const archives = tagArchives(articles);
   await rm(destination, { recursive: true, force: true });
   await mkdir(destination, { recursive: true });
   await cp(join(rootDir, 'public'), destination, { recursive: true });
   const assets = join(destination, 'assets');
+  await cp(fileURLToPath(import.meta.resolve('@cruciblesoftware/fieldnotes-renderer/browser')), join(assets, 'fieldnotes-renderer-browser.js'));
   const codeFiles = (await readdir(assets)).filter(name => /\.(js|css)$/.test(name)).sort();
   const hash = createHash('sha256');
   for (const name of codeFiles) hash.update(name).update(await readFile(join(assets, name)));
@@ -256,7 +285,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
     const code = await readFile(join(assets, name), 'utf8');
     await writeFile(join(assets, name), code.replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`));
   }
-  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)])];
+  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.slug}/index.html`, tagPage(site, archive)])];
   for (const [path, html] of pages) {
     await mkdir(resolve(destination, path, '..'), { recursive: true });
     await writeFile(join(destination, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`));
@@ -273,7 +302,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   await writeFile(join(assets, 'data.json'), JSON.stringify({ site, articles: articles.map(searchArticle), externalPosts: links, ignitionTools: site.ignitionTools }));
   await writeFile(join(destination, 'feed.xml'), renderFeed(site, articles));
   await writeFile(join(destination, 'robots.txt'), `User-agent: *\nAllow: /\n${site.siteUrl ? `Sitemap: ${site.siteUrl}sitemap.xml\n` : ''}`);
-  if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', ...articles.map(notePath)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
+  if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', ...articles.map(notePath), ...archives.map((archive) => `/tags/${archive.slug}/`)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
   return { pageCount: pages.length, noteCount: articles.length };
 }
 

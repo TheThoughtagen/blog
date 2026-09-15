@@ -225,6 +225,203 @@ Hello **rendered** world.
   await access(join(outputDir, 'notes/escaping-systems/images/diagram.png'));
 });
 
+test('build publishes linked deterministic tag archives and includes their URLs in the sitemap', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'older-note'), { recursive: true });
+  await mkdir(join(contentDir, 'newer-note'), { recursive: true });
+  await writeFile(join(contentDir, 'older-note/index.md'), `---
+title: "Older note"
+description: "The earlier observation."
+date: "2026-09-14"
+category: "Development"
+tags: ["Data Quality"]
+---
+Older body.
+`);
+  await writeFile(join(contentDir, 'newer-note/index.md'), `---
+title: "Newer note"
+description: "The latest observation."
+date: "2026-09-15"
+category: "AI & ML"
+tags: ["Reliability", "Data Quality"]
+---
+Newer body.
+`);
+
+  await build({ rootDir, contentDir, outputDir });
+
+  const article = await readFile(join(outputDir, 'notes/newer-note/index.html'), 'utf8');
+  const archive = await readFile(join(outputDir, 'tags/data-quality/index.html'), 'utf8');
+  const sitemap = await readFile(join(outputDir, 'sitemap.xml'), 'utf8');
+  assert.match(article, /href="\/tags\/data-quality\/"[^>]*>Data Quality<\/a>/);
+  assert.match(archive, /<h1>Data Quality<span class="accent">\.<\/span><\/h1>/);
+  assert.ok(archive.indexOf('Newer note') < archive.indexOf('Older note'), 'tag archive preserves publication ordering');
+  assert.match(sitemap, /<loc>https:\/\/awake-iris-z6ww\.here\.now\/tags\/data-quality\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/awake-iris-z6ww\.here\.now\/tags\/reliability\/<\/loc>/);
+});
+
+test('build emits XML-safe category and tag classifications for every RSS item', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'classified-note'), { recursive: true });
+  await writeFile(join(contentDir, 'classified-note/index.md'), `---
+title: "Classified note"
+description: "Feed classifications."
+date: "2026-09-15"
+category: "AI & ML"
+tags: ["Data & Safety", "Reliability"]
+---
+Body.
+`);
+
+  await build({ rootDir, contentDir, outputDir });
+
+  const feed = await readFile(join(outputDir, 'feed.xml'), 'utf8');
+  assert.match(feed, /<category>AI &amp; ML<\/category><category>Data &amp; Safety<\/category><category>Reliability<\/category>/);
+});
+
+test('build indexes renderer headings and body text in searchable Markdown documents', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'searchable-note'), { recursive: true });
+  await writeFile(join(contentDir, 'searchable-note/index.md'), `---
+title: "Searchable note"
+description: "Find the hidden details."
+date: "2026-09-15"
+category: "Development"
+tags: ["Observability"]
+---
+## Observe systems
+
+Trace the purple semaphore in production.
+
+### Read the signals
+
+Respond deliberately.
+`);
+
+  await build({ rootDir, contentDir, outputDir });
+
+  const data = JSON.parse(await readFile(join(outputDir, 'assets/data.json'), 'utf8'));
+  assert.deepEqual(data.articles[0].headings, ['Observe systems', 'Read the signals']);
+  assert.match(data.articles[0].body, /Trace the purple semaphore in production\./);
+  assert.match(data.articles[0].searchText, /Searchable note[\s\S]*Observe systems[\s\S]*purple semaphore/);
+  assert.deepEqual(
+    Object.fromEntries(['title', 'description', 'category', 'tags', 'url'].map(key => [key, data.articles[0][key]])),
+    {
+      title: 'Searchable note',
+      description: 'Find the hidden details.',
+      category: 'Development',
+      tags: ['Observability'],
+      url: '/notes/searchable-note/',
+    },
+  );
+});
+
+test('build excludes drafts and their assets from every public artifact', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'visible-note'), { recursive: true });
+  await mkdir(join(contentDir, 'secret-draft/images'), { recursive: true });
+  await writeFile(join(contentDir, 'visible-note/index.md'), `---
+title: "Visible note"
+description: "Public writing."
+date: "2026-09-15"
+category: "Development"
+tags: ["Visible"]
+---
+Published body.
+`);
+  await writeFile(join(contentDir, 'secret-draft/index.md'), `---
+title: "Secret draft"
+description: "Private writing."
+date: "2026-09-16"
+category: "Development"
+tags: ["Secret"]
+draft: true
+---
+Unpublished phrase.
+
+![Private image](images/private.txt)
+`);
+  await writeFile(join(contentDir, 'secret-draft/images/private.txt'), 'private asset bytes');
+
+  await build({ rootDir, contentDir, outputDir });
+
+  for (const path of [
+    'notes/secret-draft/index.html',
+    'notes/secret-draft/index.md',
+    'notes/secret-draft/images/private.txt',
+    'tags/secret/index.html',
+  ]) await assert.rejects(access(join(outputDir, path)), { code: 'ENOENT' }, path);
+  for (const path of ['index.html', 'feed.xml', 'sitemap.xml', 'assets/data.json']) {
+    const artifact = await readFile(join(outputDir, path), 'utf8');
+    assert.doesNotMatch(artifact, /Secret draft|secret-draft|Unpublished phrase|private asset bytes/, path);
+  }
+});
+
+test('build copies verified local asset bytes and rejects missing or traversing assets before clearing output', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  const bytes = Buffer.from([0x00, 0xff, 0x41, 0x42, 0x80]);
+  await mkdir(join(contentDir, 'asset-note/images'), { recursive: true });
+  await writeFile(join(contentDir, 'asset-note/index.md'), `---
+title: "Asset note"
+description: "Local binary asset."
+date: "2026-09-15"
+category: "Development"
+---
+![Binary](images/binary.dat)
+`);
+  await writeFile(join(contentDir, 'asset-note/images/binary.dat'), bytes);
+  await build({ rootDir, contentDir, outputDir });
+  assert.deepEqual(await readFile(join(outputDir, 'notes/asset-note/images/binary.dat')), bytes);
+
+  await writeFile(join(contentDir, 'asset-note/index.md'), `---
+title: "Asset note"
+description: "Missing local asset."
+date: "2026-09-15"
+category: "Development"
+---
+![Missing](images/missing.png)
+`);
+  await writeFile(join(outputDir, 'sentinel.txt'), 'keep');
+  await assert.rejects(build({ rootDir, contentDir, outputDir }), /asset-missing|Missing local asset/);
+  assert.equal(await readFile(join(outputDir, 'sentinel.txt'), 'utf8'), 'keep');
+
+  await writeFile(join(contentDir, 'asset-note/index.md'), `---
+title: "Asset note"
+description: "Traversing local asset."
+date: "2026-09-15"
+category: "Development"
+---
+![Traversal](../escape.png)
+`);
+  await assert.rejects(build({ rootDir, contentDir, outputDir }), /asset-traversal|escapes the post directory/);
+  assert.equal(await readFile(join(outputDir, 'sentinel.txt'), 'utf8'), 'keep');
+});
+
+test('build installs the self-contained renderer browser export beside the module application', async () => {
+  const rootDir = await createBuildRoot();
+  const outputDir = join(rootDir, 'site');
+  await build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir });
+
+  const app = await readFile(join(outputDir, 'assets/app.js'), 'utf8');
+  const renderer = await readFile(join(outputDir, 'assets/fieldnotes-renderer-browser.js'), 'utf8');
+  const home = await readFile(join(outputDir, 'index.html'), 'utf8');
+  assert.match(app, /import\s*\{\s*hydrateMermaid\s*,\s*normalizeRenderedDom\s*\}\s*from\s*['"]\.\/fieldnotes-renderer-browser\.js\?v=[a-f0-9]{12}['"]/);
+  assert.match(renderer, /export\s*\{[\s\S]*hydrateMermaid,[\s\S]*normalizeRenderedDom/);
+  const imports = [...renderer.matchAll(/^\s*import(?:\s+[^;\n]+?\s+from\s+|\s*)['"]([^'"]+)['"]/gmu)].map((match) => match[1]);
+  assert.deepEqual(imports, []);
+  assert.match(home, /<script type="module" src="\/assets\/app\.js\?v=[a-f0-9]{12}"><\/script>/);
+});
+
 test('build supports an empty notebook without note URLs, feed items, or heading navigation', async () => {
   const rootDir = await createBuildRoot();
   const outputDir = join(rootDir, 'site');
