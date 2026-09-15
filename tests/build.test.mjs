@@ -6,7 +6,6 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels, build, loadLocalStylesheetBundle } from '../scripts/build.mjs';
 import { site } from '../site.config.mjs';
-import { articles } from '../content/articles.mjs';
 import { externalPosts } from '../content/links.mjs';
 
 function fixture() {
@@ -23,7 +22,7 @@ function fixture() {
     notes: [{
       slug: 'first-note', title: 'First note', description: 'A useful note.',
       date: '2024-02-29', category: 'Development', tags: ['Testing'],
-      readingMinutes: 2, featured: true, sample: true,
+      readingMinutes: 2, featured: true,
       sections: [{ id: 'the-boundary', title: 'The boundary', paragraphs: ['Use plain text.'] }],
     }],
     links: [{
@@ -51,8 +50,8 @@ async function createBuildRoot() {
   return rootDir;
 }
 
-test('validateContent accepts the checked-in configuration and content', () => {
-  assert.doesNotThrow(() => validateContent(site, articles, externalPosts));
+test('validateContent accepts the checked-in configuration and an empty notebook', () => {
+  assert.doesNotThrow(() => validateContent(site, [], externalPosts));
 });
 
 test('validateContent accepts configured profiles, six repositories, membership, and crossposts', () => {
@@ -61,7 +60,6 @@ test('validateContent accepts configured profiles, six repositories, membership,
   config.links.patreon = 'https://www.patreon.com/example';
   config.membership = { enabled: true, url: 'https://members.example/join' };
   links.push({ ...links[0], source: 'LinkedIn', url: 'https://www.linkedin.com/posts/example' });
-  notes[0].sample = false;
   assert.doesNotThrow(() => validateContent(config, notes, links));
 });
 

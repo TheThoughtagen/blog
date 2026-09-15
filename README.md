@@ -1,6 +1,6 @@
 # FIELDNOTES
 
-A static engineering notebook with sample articles, RSS, local search, keyboard navigation, three color themes, and optional public GitHub activity/releases. Requires Node.js 22 or newer; no dependencies or install step.
+A static engineering notebook built from Markdown, with RSS, local search, keyboard navigation, three color themes, and optional public GitHub activity/releases. Requires Node.js 24 or newer.
 
 Live preview: https://awake-iris-z6ww.here.now/
 
@@ -15,9 +15,16 @@ bash "$HOME/.agents/skills/here-now/scripts/publish.sh" dist --client opencode -
 Run from this directory:
 
 ```sh
-node scripts/build.mjs
+npm ci
+npm test
+npm run build
+node tests/navigation-markdown.browser.js
+```
+
+The browser gate is self-contained: it creates temporary Markdown fixtures, starts its own local server, runs the Playwright checks, and removes the temporary files. For local reading and styling work, run:
+
+```sh
 node scripts/serve.mjs
-node --test tests/*.test.mjs
 ```
 
 The build validates configuration/content, replaces `dist/`, copies `public/`, and generates pages, the search index, and RSS. Edit source files, not `dist/`.
@@ -65,10 +72,61 @@ playwright-cli -s=fieldnotes-mascot run-code --filename=tests/mascot.browser.js
 playwright-cli -s=fieldnotes-mascot close
 ```
 
-**Content**
-Edit `content/articles.mjs`. Replace the demonstration writing with actual reviewed articles and set `sample: false` on each real article. Leave remaining demonstrations labeled as samples. Keep exactly one article `featured: true`.
+**Markdown Content**
 
-Each article needs a unique lowercase hyphenated `slug`, `title`, `description`, real `YYYY-MM-DD` date, `category`, `tags` array, positive integer `readingMinutes`, and nonempty `sections`. Categories are `Industrial software`, `Development`, `Leadership`, or `AI & ML`. Sections appear in array order and require a unique lowercase hyphenated `id`, `title`, and `paragraphs` array. Optional fields are `code: { language, text }`, `list`, and `quote`. Text is escaped, not interpreted as HTML or Markdown. Keep published slugs and section IDs stable for existing links. Sample labels and the home preview notice follow the `sample` flags automatically. Update the bio in `site.config.mjs`; sample labels remain until each demonstration is replaced.
+Store one post at `content/posts/<slug>/index.md`. The directory name is the public slug and must be lowercase ASCII words separated by single hyphens, for example `content/posts/testing-production-boundaries/index.md`. Keep it stable after publication because it determines `/notes/<slug>/`. Loose Markdown files and deeper nested post directories are not loaded.
+
+Every post starts with YAML frontmatter. `frontmatter.schema.json` is the source of truth, rejects unknown fields, and requires exactly these fields:
+
+- `title`: nonempty string used as the page title. Do not repeat it as an H1 in the Markdown body.
+- `description`: nonempty summary used in listings, search, RSS, and metadata.
+- `date`: a real calendar date in `YYYY-MM-DD` form.
+- `category`: one of `Industrial software`, `Development`, `Leadership`, or `AI & ML`.
+
+The optional fields are:
+
+- `tags`: up to eight nonempty strings; defaults to `[]`.
+- `draft`: boolean; defaults to `false`.
+- `featured`: boolean; defaults to `false`.
+
+For example:
+
+```markdown
+---
+title: "Testing production boundaries"
+description: "How to make risky integrations observable before rollout."
+date: "2026-09-15"
+category: "Industrial software"
+tags: ["Testing", "Reliability"]
+featured: true
+---
+## Start with the boundary
+
+Write the note in Markdown here.
+```
+
+Tag labels are trimmed and duplicate labels are rejected case-insensitively after Unicode normalization. Tag URLs also normalize Unicode width/case, collapse punctuation to hyphens, and percent-encode non-ASCII text. The build rejects distinct labels that would collide at the same URL. Each published tag receives `/tags/<slug>/` and appears in search and RSS.
+
+Put images and other referenced files inside the same post directory, conventionally under `images/`, and use a relative path such as `![Gateway status](images/status.svg)`. Missing files, path traversal, symlinks that escape the post directory, and remote image URLs fail publication. Verified local assets are copied beside the generated note while preserving their relative paths.
+
+Drafts may remain under `content/posts/` for local editing. A post with `draft: true` is excluded from every public artifact: HTML, exact Markdown source, copied images, tag archives, search, RSS, and the sitemap. Malformed YAML still stops the build because the loader cannot safely establish draft status. Published posts must pass all schema, renderer, tag, heading, and asset checks. Diagnostics identify the post slug, validation stage, diagnostic code, and message.
+
+At most one published post may set `featured: true`; multiple explicit selections stop the build. If none is selected, the newest published post becomes featured, with the slug used as the deterministic tie-breaker for equal dates. With no published posts, the site intentionally builds the five core pages and an empty notebook state, plus empty search/RSS note collections. It does not create placeholder articles.
+
+The generated `/notes/<slug>/index.md` is an exact copy of the authored source. Article pages link to that raw source for opening or downloading, and the Copy Markdown control copies the same bytes represented as text.
+
+`.fieldnotes.json` points compatible FIELDNOTES tooling at `frontmatter.schema.json` and declares the `document-directory` local-asset policy. Editors can discover those repository defaults when opening a post. This blog does not currently ship an editor executable or define mode/schema command-line flags; when an installed FIELDNOTES editor supports per-invocation mode or schema overrides, those editor options take precedence for that invocation without changing the blog’s build contract.
+
+To add or revise content, run the complete contributor gate:
+
+```sh
+npm ci
+npm test
+npm run build
+node tests/navigation-markdown.browser.js
+```
+
+The build validates content before replacing `dist/`. Never edit `dist/` directly.
 
 The home and Lab pages include a lazy-loaded official X timeline with a permanent profile link if the embed is blocked. LinkedIn personal posts require curated links; the profile activity link is available until posts are added. Add crossposts to the `externalPosts` array in `content/links.mjs`; these are curated links, not scraping or automatic imports:
 
@@ -110,6 +168,6 @@ To regenerate amber/paper assets without AI credits, run `node scripts/video-the
 **Reader controls**
 With Vim navigation enabled, `h` goes back and `l` goes forward in browser history. These shortcuts are inactive in text fields, dialogs, and when Vim navigation is disabled. Press `?` for the full shortcut list.
 
-Each article has **Copy Markdown** and **Download .md** controls. Exports include the title, description, source URL, date, section headings, paragraphs, code, lists, quotes, tags, and sample disclosure. The download works without JavaScript; clipboard failures point to that fallback.
+Each article has **Copy Markdown** and **Download .md** controls. Both expose the exact authored Markdown source, including its frontmatter. The download works without JavaScript; clipboard failures point to that fallback.
 
 The cursor emits sparse code dust within a 60px radius while moving. It uses theme colors, fades within half a second, and stops over controls, while selecting text, on touch devices, or with reduced motion. The effect cannot intercept pointer input. Paper artwork uses green ink on its light background.
