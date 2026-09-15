@@ -53,7 +53,7 @@ export async function loadPosts({ contentDir, schemaPath }) {
     const policyDiagnostics = [
       ...tagDiagnostics(tags),
       ...await assetDiagnostics(localAssets, dirname(sourcePath)),
-      ...await hasRepeatedTitleH1(extracted.body, extracted.data.title)
+      ...await hasRepeatedTitleH1(rendered.html, extracted.data.title)
         ? [{
             code: 'post.repeated-title-h1',
             message: 'The Markdown body must not repeat the frontmatter title as an H1.',
@@ -197,38 +197,18 @@ function isWithin(parent, child) {
   return pathFromParent === '' || (!pathFromParent.startsWith('..') && !isAbsolute(pathFromParent));
 }
 
-async function hasRepeatedTitleH1(body, title) {
+async function hasRepeatedTitleH1(html, title) {
   if (typeof title !== 'string' || title.trim() === '') return false;
   const wanted = normalizeHeading(title);
-  const lines = body.replace(/\r\n?/gu, '\n').split('\n');
-  let fence;
+  const headings = html.matchAll(/<h1(?:\s[^>]*)?>[\s\S]*?<\/h1>/giu);
 
-  for (let index = 0; index < lines.length; index += 1) {
-    if (fence !== undefined) {
-      const closingFence = /^ {0,3}(`{3,}|~{3,})[\t ]*$/u.exec(lines[index]);
-      if (closingFence
-        && closingFence[1][0] === fence[0]
-        && closingFence[1].length >= fence.length) {
-        fence = undefined;
-      }
-      continue;
-    }
-
-    const openingFence = /^ {0,3}(`{3,}|~{3,})/u.exec(lines[index]);
-    if (openingFence) {
-      fence = openingFence[1];
-      continue;
-    }
-
-    const atx = /^ {0,3}#[\t ]+(.+?)(?:[\t ]+#+[\t ]*)?$/u.exec(lines[index]);
-    if (atx && await headingText(atx[0]) === wanted) return true;
-    if (index + 1 < lines.length && /^ {0,3}=+[\t ]*$/u.test(lines[index + 1])
-      && await headingText(`${lines[index]}\n${lines[index + 1]}`) === wanted) return true;
+  for (const [heading] of headings) {
+    if (await renderedText(heading) === wanted) return true;
   }
   return false;
 }
 
-async function headingText(source) {
+async function renderedText(source) {
   const rendered = await renderDocument(source);
   return normalizeHeading(rendered.plainText);
 }

@@ -336,3 +336,16 @@ test('loadPosts recognizes a same-marker closing fence with sufficient length an
     /title.*h1|h1.*title/i,
   );
 });
+
+test('loadPosts rejects a rendered repeated title after an invalid backtick fence opener', async () => {
+  const contentDir = await postTree();
+  await addPost(contentDir, 'invalid-backtick-opener', source({
+    title: 'Same title',
+    body: ['```markdown`invalid', '# Same title', '```', ''].join('\n'),
+  }));
+
+  await assert.rejects(
+    loadPosts({ contentDir, schemaPath }),
+    /title.*h1|h1.*title/i,
+  );
+});
