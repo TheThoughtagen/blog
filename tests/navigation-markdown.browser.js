@@ -296,10 +296,7 @@ async function browserChecks(page) {
     }
   }
 
-  const unexpectedConsoleErrors = consoleErrors.filter((message) => !/^Error: Parse error on line \d+:/u.test(message));
-  const malformedDiagnostics = consoleErrors.filter((message) => /^Error: Parse error on line \d+:/u.test(message));
-  check(malformedDiagnostics.length <= 1, `Malformed Mermaid emits at most one expected parser diagnostic: ${malformedDiagnostics.join(' | ')}`);
-  check(unexpectedConsoleErrors.length === 0, `No unexpected browser console errors: ${unexpectedConsoleErrors.join(' | ')}`);
+  check(consoleErrors.length === 0, `Renderer and blog shell emit zero browser console errors: ${consoleErrors.join(' | ')}`);
 
   check(remoteScripts.length === 0, `No remote scripts requested: ${remoteScripts.join(', ')}`);
   check(localFailures.length === 0, `No local asset or chunk failures: ${localFailures.join(', ')}`);

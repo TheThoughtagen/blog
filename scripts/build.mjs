@@ -1,4 +1,4 @@
-import { mkdir, writeFile, cp, rm, readFile, readdir, realpath } from 'node:fs/promises';
+import { mkdir, writeFile, cp, rm, readFile, readdir, realpath, lstat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, join, relative, isAbsolute, dirname, basename, sep } from 'node:path';
@@ -250,6 +250,34 @@ function isStrictDescendant(parent, candidate) {
   return path !== '' && path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
+const generatedPublicFiles = new Set([
+  '404.html', 'feed.xml', 'index.html', 'robots.txt', 'sitemap.xml',
+  'assets/data.json', 'assets/fieldnotes-renderer-browser.js', 'assets/katex.min.css',
+]);
+const generatedPublicDirectories = ['about', 'connect', 'lab', 'notes', 'tags', 'assets/fonts'];
+
+function isGeneratedPublicPath(path) {
+  const normalized = path.split(sep).join('/').toLowerCase();
+  return generatedPublicFiles.has(normalized)
+    || generatedPublicDirectories.some((directory) => normalized === directory || normalized.startsWith(`${directory}/`));
+}
+
+async function preflightPublicTree(publicDir) {
+  const root = await lstat(publicDir);
+  if (root.isSymbolicLink() || !root.isDirectory()) throw new Error('Public source must be a real directory, not a symbolic link.');
+  async function walk(directory, prefix = '') {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const path = prefix ? join(prefix, entry.name) : entry.name;
+      if (entry.isSymbolicLink()) throw new Error(`Public source contains a symbolic link: ${path}`);
+      if (isGeneratedPublicPath(path)) throw new Error(`Public source collides with a generated destination: ${path}`);
+      if (entry.isDirectory()) await walk(join(directory, entry.name), path);
+      else if (!entry.isFile()) throw new Error(`Public source contains a non-regular entry: ${path}`);
+    }
+  }
+  await walk(publicDir);
+}
+
 export async function loadLocalStylesheetBundle(stylesheetPath) {
   const stylesheet = await realpath(stylesheetPath);
   const directory = await realpath(dirname(stylesheet));
@@ -301,13 +329,16 @@ function preflightArticleAssets(destination, articles) {
 export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   const destination = await validateOutputDestination(rootDir, outputDir);
   preflightArticleAssets(destination, articles);
+  const publicDir = join(rootDir, 'public');
+  await preflightPublicTree(publicDir);
   const rendererEntry = import.meta.resolve('@cruciblesoftware/fieldnotes-renderer');
   const katexPath = fileURLToPath(import.meta.resolve('katex/dist/katex.min.css', rendererEntry));
   const katex = await loadLocalStylesheetBundle(katexPath);
   const archives = tagArchives(articles);
   await rm(destination, { recursive: true, force: true });
   await mkdir(destination, { recursive: true });
-  await cp(join(rootDir, 'public'), destination, { recursive: true });
+  await cp(publicDir, destination, { recursive: true });
+  await preflightPublicTree(destination);
   const assets = join(destination, 'assets');
   await cp(fileURLToPath(import.meta.resolve('@cruciblesoftware/fieldnotes-renderer/browser')), join(assets, 'fieldnotes-renderer-browser.js'));
   await writeFile(join(assets, 'katex.min.css'), katex.css);

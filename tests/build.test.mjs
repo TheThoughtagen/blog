@@ -653,6 +653,60 @@ test('build rejects a symlinked output directory that canonically escapes the pr
   assert.equal(await readFile(join(escaped, 'sentinel.txt'), 'utf8'), 'keep');
 });
 
+test('build rejects a public fonts symlink before generated fonts escape the output', async () => {
+  const rootDir = await createBuildRoot();
+  const outputDir = join(rootDir, 'site');
+  const external = join(resolve(rootDir, '..'), 'external-fonts');
+  await mkdir(external);
+  const externalFont = join(external, 'KaTeX_Main-Regular.woff2');
+  await writeFile(externalFont, 'external sentinel');
+  await symlink(external, join(rootDir, 'public/assets/fonts'));
+  await mkdir(outputDir);
+  await writeFile(join(outputDir, 'sentinel.txt'), 'output sentinel');
+
+  await assert.rejects(
+    build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir }),
+    /public.*(?:symlink|symbolic)|generated.*collision/i,
+  );
+  assert.equal(await readFile(externalFont, 'utf8'), 'external sentinel');
+  assert.equal(await readFile(join(outputDir, 'sentinel.txt'), 'utf8'), 'output sentinel');
+});
+
+test('build rejects public symlinks at generated asset files before external writes', async (t) => {
+  for (const name of ['katex.min.css', 'fieldnotes-renderer-browser.js', 'data.json']) {
+    await t.test(name, async () => {
+      const rootDir = await createBuildRoot();
+      const outputDir = join(rootDir, 'site');
+      const external = join(resolve(rootDir, '..'), `external-${name.replaceAll('.', '-')}`);
+      await writeFile(external, 'external sentinel');
+      await symlink(external, join(rootDir, 'public/assets', name));
+      await mkdir(outputDir);
+      await writeFile(join(outputDir, 'sentinel.txt'), 'output sentinel');
+
+      await assert.rejects(
+        build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir }),
+        /public.*(?:symlink|symbolic)|generated.*collision/i,
+      );
+      assert.equal(await readFile(external, 'utf8'), 'external sentinel');
+      assert.equal(await readFile(join(outputDir, 'sentinel.txt'), 'utf8'), 'output sentinel');
+    });
+  }
+});
+
+test('build rejects a non-directory public collision at the generated fonts namespace before clearing output', async () => {
+  const rootDir = await createBuildRoot();
+  const outputDir = join(rootDir, 'site');
+  await writeFile(join(rootDir, 'public/assets/fonts'), 'not a directory');
+  await mkdir(outputDir);
+  await writeFile(join(outputDir, 'sentinel.txt'), 'output sentinel');
+
+  await assert.rejects(
+    build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir }),
+    /collid.*generated|generated.*collis|public.*directory/i,
+  );
+  assert.equal(await readFile(join(outputDir, 'sentinel.txt'), 'utf8'), 'output sentinel');
+});
+
 test('escapeHtml escapes markup, ampersands, both quote types, and stringifies values', () => {
   assert.equal(escapeHtml(`<script title="a&b">'x'</script>`), '&lt;script title=&quot;a&amp;b&quot;&gt;&#39;x&#39;&lt;/script&gt;');
   assert.equal(escapeHtml('&lt;'), '&amp;lt;');
