@@ -77,6 +77,29 @@ test('loadPosts retains drafts with diagnostics while publication helpers exclud
   assert.deepEqual(posts.find(post => post.slug === 'published-note').tags, ['JavaScript']);
 });
 
+test('loadPosts rejects remote images in published posts', async () => {
+  const publishedDir = await postTree();
+  await addPost(publishedDir, 'remote-image', source({
+    body: '## Image\n\n![Hosted elsewhere](https://example.com/image.png)\n',
+  }));
+  await assert.rejects(
+    loadPosts({ contentDir: publishedDir, schemaPath }),
+    /remote-image.*image\.remote-disabled|image\.remote-disabled.*remote-image/i,
+  );
+});
+
+test('loadPosts retains remote-image diagnostics on drafts without failing publication', async () => {
+  const draftDir = await postTree();
+  await addPost(draftDir, 'remote-draft', source({
+    draft: true,
+    body: '## Image\n\n![Hosted elsewhere](https://example.com/image.png)\n',
+  }));
+  const [draft] = await loadPosts({ contentDir: draftDir, schemaPath });
+  assert.equal(draft.draft, true);
+  assert.ok(draft.rendered.diagnostics.some(diagnostic => diagnostic.code === 'image.remote-disabled'));
+  assert.deepEqual(publishedPosts([draft]), []);
+});
+
 test('loadPosts rejects malformed YAML because draft status cannot be known', async () => {
   const contentDir = await postTree();
   await addPost(contentDir, 'broken-yaml', '---\ntitle: [unterminated\n---\nText\n');
@@ -244,6 +267,67 @@ test('loadPosts rejects a local image whose canonical path escapes through a sym
     loadPosts({ contentDir, schemaPath }),
     /symlink-escape.*travers|travers.*symlink-escape|not a file within/i,
   );
+});
+
+test('loadPosts rejects an index.md symlink whose canonical target escapes the post directory', async (t) => {
+  const contentDir = await postTree();
+  const postDirectory = join(contentDir, 'source-escape');
+  const outsideSource = join(contentDir, 'outside.md');
+  await mkdir(postDirectory);
+  await writeFile(outsideSource, source());
+  try {
+    await symlink(outsideSource, join(postDirectory, 'index.md'));
+  } catch (error) {
+    if (['EACCES', 'ENOSYS', 'ENOTSUP', 'EOPNOTSUPP', 'EPERM'].includes(error?.code)) {
+      t.skip(`symlink creation is unavailable on this platform: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
+
+  await assert.rejects(
+    loadPosts({ contentDir, schemaPath }),
+    /source-escape.*source|source.*source-escape|post directory/i,
+  );
+});
+
+test('loadPosts requires index.md itself to be a regular file', async (t) => {
+  const contentDir = await postTree();
+  const postDirectory = join(contentDir, 'linked-source');
+  const realSource = join(postDirectory, 'real.md');
+  await mkdir(postDirectory);
+  await writeFile(realSource, source());
+  try {
+    await symlink(realSource, join(postDirectory, 'index.md'));
+  } catch (error) {
+    if (['EACCES', 'ENOSYS', 'ENOTSUP', 'EOPNOTSUPP', 'EPERM'].includes(error?.code)) {
+      t.skip(`symlink creation is unavailable on this platform: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
+
+  await assert.rejects(
+    loadPosts({ contentDir, schemaPath }),
+    /linked-source.*regular file|regular file.*linked-source/i,
+  );
+});
+
+test('loadPosts ignores a direct post-directory symlink that escapes the content root', async (t) => {
+  const contentDir = await postTree();
+  const outsideDirectory = await postTree();
+  await addPost(outsideDirectory, 'external', source());
+  try {
+    await symlink(join(outsideDirectory, 'external'), join(contentDir, 'linked-post'), 'dir');
+  } catch (error) {
+    if (['EACCES', 'ENOSYS', 'ENOTSUP', 'EOPNOTSUPP', 'EPERM'].includes(error?.code)) {
+      t.skip(`symlink creation is unavailable on this platform: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
+
+  assert.deepEqual(await loadPosts({ contentDir, schemaPath }), []);
 });
 
 test('loadPosts rejects unsafe post directory names', async () => {

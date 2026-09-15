@@ -1,4 +1,4 @@
-import { readFile, readdir, realpath, stat } from 'node:fs/promises';
+import { lstat, readFile, readdir, realpath, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
 import {
@@ -7,7 +7,10 @@ import {
 } from '@cruciblesoftware/fieldnotes-renderer';
 
 const SAFE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
-const PUBLICATION_WARNING_CODES = new Set(['heading.duplicate-id']);
+const PUBLICATION_WARNING_CODES = new Set([
+  'heading.duplicate-id',
+  'image.remote-disabled',
+]);
 
 export async function loadPosts({ contentDir, schemaPath }) {
   const entries = await readContentDirectory(contentDir);
@@ -18,13 +21,30 @@ export async function loadPosts({ contentDir, schemaPath }) {
   // informational schema identifier again when loadPosts is called repeatedly.
   delete schema.$id;
   const posts = [];
+  const canonicalContentDirectory = await realpath(contentDir);
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
 
-    const sourcePath = resolve(contentDir, entry.name, 'index.md');
+    const postDirectory = resolve(contentDir, entry.name);
+    const sourcePath = resolve(postDirectory, 'index.md');
     let source;
     try {
+      const [postDetails, canonicalPostDirectory] = await Promise.all([
+        lstat(postDirectory),
+        realpath(postDirectory),
+      ]);
+      if (!postDetails.isDirectory() || !isWithin(canonicalContentDirectory, canonicalPostDirectory)) {
+        throw new Error(`${entry.name} source failed: post directory escapes the content directory.`);
+      }
+
+      const [sourceDetails, canonicalSourcePath] = await Promise.all([
+        lstat(sourcePath),
+        realpath(sourcePath),
+      ]);
+      if (!sourceDetails.isFile() || !isWithin(canonicalPostDirectory, canonicalSourcePath)) {
+        throw new Error(`${entry.name} source failed: index.md must be a regular file within the post directory.`);
+      }
       source = await readFile(sourcePath, 'utf8');
     } catch (error) {
       if (error?.code === 'ENOENT') continue;
