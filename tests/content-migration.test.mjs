@@ -4,7 +4,11 @@ import { access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { loadPosts } from '../scripts/posts.mjs';
+
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
+const contentDir = fileURLToPath(new URL('../content/posts/', import.meta.url));
+const schemaPath = fileURLToPath(new URL('../frontmatter.schema.json', import.meta.url));
 
 async function exists(path) {
   try {
@@ -16,7 +20,7 @@ async function exists(path) {
   }
 }
 
-test('legacy structured sample content and its Markdown adapter stay removed', async () => {
+test('ships no sample posts or legacy structured content', async () => {
   const legacyPaths = [
     new URL('../content/articles.mjs', import.meta.url),
     new URL('../scripts/markdown.mjs', import.meta.url),
@@ -28,4 +32,5 @@ test('legacy structured sample content and its Markdown adapter stay removed', a
   }
 
   assert.deepEqual(remaining, []);
+  assert.deepEqual(await loadPosts({ contentDir, schemaPath }), []);
 });
