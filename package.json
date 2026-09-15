@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A small, terminal-inspired engineering notebook. No runtime dependencies.",
-  "engines": { "node": ">=22" },
+  "description": "A small, terminal-inspired engineering notebook.",
+  "engines": { "node": ">=24" },
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/serve.mjs",
