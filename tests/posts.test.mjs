@@ -280,6 +280,7 @@ test('loadPosts rejects a repeated title H1 by Markdown-visible text', async () 
     ['strong-title', '# **Same title**'],
     ['emphasis-title', '# *Same title*'],
     ['linked-title', '# Same [title](https://example.com)'],
+    ['inline-code-title', '# Same `title`'],
   ]) {
     const contentDir = await postTree();
     await addPost(contentDir, slug, source({

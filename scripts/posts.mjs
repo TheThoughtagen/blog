@@ -209,7 +209,10 @@ async function hasRepeatedTitleH1(html, title) {
 }
 
 async function renderedText(source) {
-  const rendered = await renderDocument(source);
+  const inlineCodeAsText = source
+    .replace(/<code(?:\s[^>]*)?>/giu, '<span>')
+    .replace(/<\/code>/giu, '</span>');
+  const rendered = await renderDocument(inlineCodeAsText);
   return normalizeHeading(rendered.plainText);
 }
 
