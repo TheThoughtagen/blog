@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels, build } from '../scripts/build.mjs';
 import { site } from '../site.config.mjs';
 import { articles } from '../content/articles.mjs';
@@ -88,18 +90,18 @@ test('validateContent rejects invalid identity, origin, GitHub configuration, an
   }
 });
 
-test('validateContent requires one featured note and unique URL-safe slugs', () => {
+test('validateContent permits an empty notebook or one featured note and requires unique URL-safe slugs', () => {
   const { config, notes, links } = fixture();
-  assert.throws(() => validateContent(config, [], links), /exactly one featured/);
-  assert.throws(() => validateContent(config, [{ ...notes[0], featured: false }], links), /exactly one featured/);
-  assert.throws(() => validateContent(config, [...notes, { ...notes[0], slug: 'second-note' }], links), /exactly one featured/);
+  assert.doesNotThrow(() => validateContent(config, [], links));
+  assert.doesNotThrow(() => validateContent(config, [{ ...notes[0], featured: false }], links));
+  assert.throws(() => validateContent(config, [...notes, { ...notes[0], slug: 'second-note' }], links), /at most one featured/);
   assert.throws(() => validateContent(config, [...notes, { ...notes[0], featured: false }], links), /slugs must be unique/);
   for (const slug of ['../escape', 'Title', 'a/b', 'note.html', 'note" onclick="alert(1)', '']) {
     assert.throws(() => validateContent(config, [{ ...notes[0], slug }], links), /URL-safe/, slug);
   }
 });
 
-test('validateContent rejects invalid article metadata and unsafe or duplicate section IDs', () => {
+test('validateContent rejects invalid article metadata', () => {
   const cases = [
     ['empty title', (note) => { note.title = ''; }, /Invalid metadata/],
     ['empty description', (note) => { note.description = ''; }, /Invalid metadata/],
@@ -109,11 +111,6 @@ test('validateContent rejects invalid article metadata and unsafe or duplicate s
     ['non-array tags', (note) => { note.tags = 'Testing'; }, /Invalid article/],
     ['zero reading time', (note) => { note.readingMinutes = 0; }, /Invalid article/],
     ['fractional reading time', (note) => { note.readingMinutes = 1.5; }, /Invalid article/],
-    ['no sections', (note) => { note.sections = []; }, /Invalid article/],
-    ['unsafe section ID', (note) => { note.sections[0].id = 'x" onclick="alert(1)'; }, /Invalid section/],
-    ['duplicate section ID', (note) => { note.sections.push({ ...note.sections[0] }); }, /Invalid section/],
-    ['missing section title', (note) => { note.sections[0].title = ''; }, /Invalid section/],
-    ['non-array paragraphs', (note) => { note.sections[0].paragraphs = 'A paragraph'; }, /Invalid section/],
   ];
   for (const [label, mutate, error] of cases) {
     const { config, notes, links } = fixture();
@@ -154,9 +151,10 @@ test('validateContent rejects unsafe or incomplete Ignition tool destinations', 
 });
 
 test('build publishes five safe Ignition tool cards and indexes their documentation for command search', async () => {
-  await build();
-  const lab = await readFile(new URL('../dist/lab/index.html', import.meta.url), 'utf8');
-  const searchIndex = JSON.parse(await readFile(new URL('../dist/assets/data.json', import.meta.url), 'utf8'));
+  const outputDir = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
+  await build({ contentDir: join(outputDir, 'missing-content'), outputDir: join(outputDir, 'site') });
+  const lab = await readFile(join(outputDir, 'site/lab/index.html'), 'utf8');
+  const searchIndex = JSON.parse(await readFile(join(outputDir, 'site/assets/data.json'), 'utf8'));
 
   assert.match(lab, /<section class="ignition-tools"[^>]+aria-labelledby="ignition-tools-title"/);
   assert.equal((lab.match(/class="ignition-project-card"/g) || []).length, 5);
@@ -169,6 +167,109 @@ test('build publishes five safe Ignition tool cards and indexes their documentat
   }
 });
 
+test('build publishes a complete Markdown note with renderer HTML, nested navigation, source, assets, and wraparound', async () => {
+  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
+  const contentDir = join(temporary, 'posts');
+  const outputDir = join(temporary, 'site');
+  const source = `---
+title: "Escaping <systems>"
+description: "A safer & useful note."
+date: "2026-09-15"
+category: "Development"
+tags: ["Rendering", "Safety"]
+featured: true
+---
+## First boundary
+
+Hello **rendered** world.
+
+### Inner detail
+
+<script>alert('unsafe')</script>
+
+![Local diagram](images/diagram.png)
+`;
+  await mkdir(join(contentDir, 'escaping-systems/images'), { recursive: true });
+  await writeFile(join(contentDir, 'escaping-systems/index.md'), source);
+  await writeFile(join(contentDir, 'escaping-systems/images/diagram.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+  await build({ contentDir, outputDir });
+
+  const html = await readFile(join(outputDir, 'notes/escaping-systems/index.html'), 'utf8');
+  const markdown = await readFile(join(outputDir, 'notes/escaping-systems/index.md'), 'utf8');
+  const data = JSON.parse(await readFile(join(outputDir, 'assets/data.json'), 'utf8'));
+  assert.equal(markdown, source);
+  assert.match(html, /<h1>Escaping &lt;systems&gt;<span class="accent">\.<\/span><\/h1>/);
+  assert.match(html, /<strong>rendered<\/strong>/);
+  assert.doesNotMatch(html, /<script>alert\('unsafe'\)<\/script>/);
+  assert.match(html, /aria-label="On this page"[\s\S]*href="#first-boundary"[\s\S]*<ol>[\s\S]*href="#inner-detail"/);
+  assert.match(html, /<time datetime="2026-09-15">15 Sep 2026<\/time>/);
+  assert.match(html, /rel="canonical" href="https:\/\/awake-iris-z6ww\.here\.now\/notes\/escaping-systems\/"/);
+  assert.match(html, /property="og:type" content="article"/);
+  assert.match(html, /property="article:published_time" content="2026-09-15"/);
+  assert.match(html, /data-copy-markdown/);
+  assert.match(html, /id="article-markdown"/);
+  assert.match(html, /href="\/notes\/escaping-systems\/index\.md"/);
+  assert.match(html, /class="next-note note-link" href="\/notes\/escaping-systems\/"/);
+  assert.equal(data.articles[0].url, '/notes/escaping-systems/');
+  assert.equal(data.articles[0].title, 'Escaping <systems>');
+  await access(join(outputDir, 'notes/escaping-systems/images/diagram.png'));
+});
+
+test('build supports an empty notebook without note URLs, feed items, or heading navigation', async () => {
+  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
+  const outputDir = join(temporary, 'site');
+  await build({ contentDir: join(temporary, 'missing'), outputDir });
+
+  const home = await readFile(join(outputDir, 'index.html'), 'utf8');
+  const lab = await readFile(join(outputDir, 'lab/index.html'), 'utf8');
+  const about = await readFile(join(outputDir, 'about/index.html'), 'utf8');
+  const connect = await readFile(join(outputDir, 'connect/index.html'), 'utf8');
+  const feed = await readFile(join(outputDir, 'feed.xml'), 'utf8');
+  const sitemap = await readFile(join(outputDir, 'sitemap.xml'), 'utf8');
+  const data = JSON.parse(await readFile(join(outputDir, 'assets/data.json'), 'utf8'));
+  assert.match(home, /first field note in progress/i);
+  assert.deepEqual(data.articles, []);
+  assert.doesNotMatch(sitemap, /\/notes\//);
+  assert.doesNotMatch(feed, /<item>/);
+  assert.match(feed, /<rss version="2\.0"><channel>/);
+  assert.match(lab, /Ignition tools/);
+  assert.match(about, /About Patrick/);
+  assert.match(connect, /Say hello/);
+});
+
+test('a Markdown note without H2 or H3 headings omits the on-page navigation', async () => {
+  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
+  const contentDir = join(temporary, 'posts');
+  const outputDir = join(temporary, 'site');
+  await mkdir(join(contentDir, 'plain-note'), { recursive: true });
+  await writeFile(join(contentDir, 'plain-note/index.md'), `---
+title: "Plain note"
+description: "A note without headings."
+date: "2026-09-15"
+category: "Development"
+---
+Just the body.
+`);
+  await build({ rootDir: resolve('.'), contentDir, outputDir });
+  const html = await readFile(join(outputDir, 'notes/plain-note/index.html'), 'utf8');
+  assert.doesNotMatch(html, /aria-label="On this page"/);
+});
+
+test('build clears only its injected output directory', async () => {
+  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
+  const outputDir = join(temporary, 'site');
+  const sibling = join(temporary, 'keep.txt');
+  await mkdir(outputDir);
+  await writeFile(join(outputDir, 'stale.txt'), 'stale');
+  await writeFile(sibling, 'keep');
+
+  await build({ contentDir: join(temporary, 'missing'), outputDir });
+
+  await assert.rejects(access(join(outputDir, 'stale.txt')), { code: 'ENOENT' });
+  assert.equal(await readFile(sibling, 'utf8'), 'keep');
+});
+
 test('escapeHtml escapes markup, ampersands, both quote types, and stringifies values', () => {
   assert.equal(escapeHtml(`<script title="a&b">'x'</script>`), '&lt;script title=&quot;a&amp;b&quot;&gt;&#39;x&#39;&lt;/script&gt;');
   assert.equal(escapeHtml('&lt;'), '&amp;lt;');
@@ -176,25 +277,25 @@ test('escapeHtml escapes markup, ampersands, both quote types, and stringifies v
   assert.equal(escapeHtml('Plain text'), 'Plain text');
 });
 
-test('renderFeed emits absolute permalinks, escaped XML, and labels only sample notes', () => {
+test('renderFeed emits absolute permalinks and escaped Markdown-note metadata', () => {
   const { config, notes } = fixture();
   config.name = 'Notes & <systems>';
   config.description = '"People" & systems';
   notes[0].title = '<Demo> & "example"';
   notes[0].description = "Don't <guess> & ship.";
   notes[0].category = 'AI & ML';
-  notes.push({ ...notes[0], slug: 'real-note', title: 'Original note', description: 'Actual writing.', sample: false, featured: false });
+  notes.push({ ...notes[0], slug: 'real-note', title: 'Original note', description: 'Actual writing.', featured: false });
   const feed = renderFeed(config, notes);
   assert.match(feed, /^<\?xml version="1\.0" encoding="UTF-8"\?>/);
   assert.ok(feed.includes('<title>Notes &amp; &lt;systems&gt;</title>'));
   assert.ok(feed.includes('<description>&quot;People&quot; &amp; systems</description>'));
-  assert.ok(feed.includes('<title>&lt;Demo&gt; &amp; &quot;example&quot; [Sample]</title>'));
-  assert.ok(feed.includes('<description>Sample article for the site preview. Don&#39;t &lt;guess&gt; &amp; ship.</description>'));
+  assert.ok(feed.includes('<title>&lt;Demo&gt; &amp; &quot;example&quot;</title>'));
+  assert.ok(feed.includes('<description>Don&#39;t &lt;guess&gt; &amp; ship.</description>'));
   assert.ok(feed.includes('<category>AI &amp; ML</category>'));
   assert.ok(feed.includes('<pubDate>Thu, 29 Feb 2024 12:00:00 GMT</pubDate>'));
   assert.ok(feed.includes('<title>Original note</title>'));
   assert.ok(feed.includes('<description>Actual writing.</description>'));
-  assert.equal((feed.match(/\[Sample\]/g) || []).length, 1);
+  assert.doesNotMatch(feed, /Sample article|\[Sample\]/);
   for (const note of notes) {
     const url = `https://notebook.example/notes/${note.slug}/`;
     assert.ok(feed.includes(`<link>${url}</link>`));
