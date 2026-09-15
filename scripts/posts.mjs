@@ -204,13 +204,21 @@ async function hasRepeatedTitleH1(body, title) {
   let fence;
 
   for (let index = 0; index < lines.length; index += 1) {
-    const fenceMatch = /^ {0,3}(`{3,}|~{3,})/u.exec(lines[index]);
-    if (fenceMatch) {
-      if (fence === undefined) fence = fenceMatch[1];
-      else if (fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) fence = undefined;
+    if (fence !== undefined) {
+      const closingFence = /^ {0,3}(`{3,}|~{3,})[\t ]*$/u.exec(lines[index]);
+      if (closingFence
+        && closingFence[1][0] === fence[0]
+        && closingFence[1].length >= fence.length) {
+        fence = undefined;
+      }
       continue;
     }
-    if (fence !== undefined) continue;
+
+    const openingFence = /^ {0,3}(`{3,}|~{3,})/u.exec(lines[index]);
+    if (openingFence) {
+      fence = openingFence[1];
+      continue;
+    }
 
     const atx = /^ {0,3}#[\t ]+(.+?)(?:[\t ]+#+[\t ]*)?$/u.exec(lines[index]);
     if (atx && await headingText(atx[0]) === wanted) return true;

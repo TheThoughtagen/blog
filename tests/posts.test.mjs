@@ -304,3 +304,35 @@ test('loadPosts permits a formatted H1 with different visible text', async () =>
   const [post] = await loadPosts({ contentDir, schemaPath });
   assert.equal(post.slug, 'different-h1');
 });
+
+test('loadPosts keeps title-like H1 text inside a fence after invalid closing lines', async () => {
+  for (const [slug, opening, invalidClosing, closing] of [
+    ['fence-trailing-text', '```markdown', '`````not-a-closing-fence', '```'],
+    ['fence-shorter', '````markdown', '```', '````'],
+    ['fence-opposite-marker', '```markdown', '~~~', '```'],
+    ['fence-over-indented', '```markdown', '    ```', '```'],
+  ]) {
+    const contentDir = await postTree();
+    await addPost(contentDir, slug, source({
+      title: 'Same title',
+      body: [opening, invalidClosing, '# Same title', closing, ''].join('\n'),
+    }));
+
+    const [post] = await loadPosts({ contentDir, schemaPath });
+    assert.deepEqual(post.rendered.toc, [], invalidClosing);
+    assert.equal(post.rendered.plainText, '', invalidClosing);
+  }
+});
+
+test('loadPosts recognizes a same-marker closing fence with sufficient length and indentation', async () => {
+  const contentDir = await postTree();
+  await addPost(contentDir, 'closed-fence', source({
+    title: 'Same title',
+    body: ['```markdown', 'code', '   ````` \t', '# Same title', ''].join('\n'),
+  }));
+
+  await assert.rejects(
+    loadPosts({ contentDir, schemaPath }),
+    /title.*h1|h1.*title/i,
+  );
+});
