@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { collectFiles, deploy } from '../scripts/deploy.mjs';
@@ -58,4 +58,33 @@ test('hidden files and symlinks cannot enter the deployment manifest', async t =
   await rm(join(directory, '.env'));
   await symlink(join(directory, 'index.html'), join(directory, 'linked.html'));
   await assert.rejects(collectFiles(directory), /symlink/);
+});
+
+test('deployment manifest accepts built webfonts with their browser MIME types', async t => {
+  const directory = await fixture(t);
+  const fonts = join(directory, 'assets', 'fonts');
+  await mkdir(fonts, { recursive: true });
+  await Promise.all([
+    writeFile(join(fonts, 'KaTeX_Main-Regular.ttf'), 'ttf'),
+    writeFile(join(fonts, 'KaTeX_Main-Regular.woff'), 'woff'),
+    writeFile(join(fonts, 'KaTeX_Main-Regular.woff2'), 'woff2'),
+  ]);
+
+  const files = await collectFiles(directory);
+  assert.deepEqual(
+    files
+      .filter(file => file.path.startsWith('assets/fonts/'))
+      .map(({ path, contentType }) => ({ path, contentType })),
+    [
+      { path: 'assets/fonts/KaTeX_Main-Regular.ttf', contentType: 'font/ttf' },
+      { path: 'assets/fonts/KaTeX_Main-Regular.woff', contentType: 'font/woff' },
+      { path: 'assets/fonts/KaTeX_Main-Regular.woff2', contentType: 'font/woff2' },
+    ],
+  );
+});
+
+test('deployment manifest continues to reject unsupported asset types', async t => {
+  const directory = await fixture(t);
+  await writeFile(join(directory, 'payload.exe'), 'not-public');
+  await assert.rejects(collectFiles(directory), /Unsupported public asset: payload\.exe/);
 });
