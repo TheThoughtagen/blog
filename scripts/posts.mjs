@@ -53,7 +53,7 @@ export async function loadPosts({ contentDir, schemaPath }) {
     const policyDiagnostics = [
       ...tagDiagnostics(tags),
       ...await assetDiagnostics(localAssets, dirname(sourcePath)),
-      ...hasRepeatedTitleH1(extracted.body, extracted.data.title)
+      ...await hasRepeatedTitleH1(extracted.body, extracted.data.title)
         ? [{
             code: 'post.repeated-title-h1',
             message: 'The Markdown body must not repeat the frontmatter title as an H1.',
@@ -197,7 +197,7 @@ function isWithin(parent, child) {
   return pathFromParent === '' || (!pathFromParent.startsWith('..') && !isAbsolute(pathFromParent));
 }
 
-function hasRepeatedTitleH1(body, title) {
+async function hasRepeatedTitleH1(body, title) {
   if (typeof title !== 'string' || title.trim() === '') return false;
   const wanted = normalizeHeading(title);
   const lines = body.replace(/\r\n?/gu, '\n').split('\n');
@@ -213,11 +213,16 @@ function hasRepeatedTitleH1(body, title) {
     if (fence !== undefined) continue;
 
     const atx = /^ {0,3}#[\t ]+(.+?)(?:[\t ]+#+[\t ]*)?$/u.exec(lines[index]);
-    if (atx && normalizeHeading(atx[1]) === wanted) return true;
+    if (atx && await headingText(atx[0]) === wanted) return true;
     if (index + 1 < lines.length && /^ {0,3}=+[\t ]*$/u.test(lines[index + 1])
-      && normalizeHeading(lines[index]) === wanted) return true;
+      && await headingText(`${lines[index]}\n${lines[index + 1]}`) === wanted) return true;
   }
   return false;
+}
+
+async function headingText(source) {
+  const rendered = await renderDocument(source);
+  return normalizeHeading(rendered.plainText);
 }
 
 function normalizeHeading(value) {

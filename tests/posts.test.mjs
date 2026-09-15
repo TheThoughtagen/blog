@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, symlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -160,6 +160,49 @@ test('loadPosts exposes renderer headings and derives reading time from visible 
   assert.equal(post.readingMinutes, 2);
 });
 
+test('loadPosts uses the renderer visible-text contract for reading-time words', async () => {
+  const contentDir = await postTree();
+  await addPost(contentDir, 'word-matrix', source({
+    title: 'Frontmatter words never count',
+    description: 'Nor do these metadata words.',
+    body: [
+      '## Heading words',
+      '',
+      'Visible prose words.',
+      '',
+      '- Listed words',
+      '',
+      '> Quoted words',
+      '',
+      '[Linked words](https://example.com)',
+      '',
+      '![Image alt words](images/picture.png)',
+      '',
+      '```text',
+      'fenced source excluded',
+      '```',
+      '',
+      '$inline math excluded$ and:',
+      '',
+      '$$',
+      'block math excluded',
+      '$$',
+      '',
+      '```mermaid',
+      'graph TD; mermaid source excluded',
+      '```',
+      '',
+    ].join('\n'),
+  }), {
+    'images/picture.png': Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+  });
+
+  const [post] = await loadPosts({ contentDir, schemaPath });
+  assert.equal(post.rendered.plainText, 'Heading words Visible prose words. Listed words Quoted words Linked words Image alt words and:');
+  assert.equal(post.rendered.wordCount, 15);
+  assert.equal(post.readingMinutes, 1);
+});
+
 test('loadPosts resolves existing local images and rejects missing or traversing assets', async () => {
   const validDir = await postTree();
   await addPost(validDir, 'images', source({ body: '## Image\n\n![Diagram](images/diagram.png)\n' }), {
@@ -177,6 +220,30 @@ test('loadPosts resolves existing local images and rejects missing or traversing
   await writeFile(join(traversalDir, 'outside.png'), 'not allowed');
   await addPost(traversalDir, 'escape', source({ body: '![Escape](../outside.png)\n' }));
   await assert.rejects(loadPosts({ contentDir: traversalDir, schemaPath }), /escape|travers/i);
+});
+
+test('loadPosts rejects a local image whose canonical path escapes through a symlink', async (t) => {
+  const contentDir = await postTree();
+  const postDirectory = join(contentDir, 'symlink-escape');
+  const imageDirectory = join(postDirectory, 'images');
+  const outsidePath = join(contentDir, 'outside.png');
+  await addPost(contentDir, 'symlink-escape', source({ body: '![Escape](images/escape.png)\n' }));
+  await mkdir(imageDirectory, { recursive: true });
+  await writeFile(outsidePath, 'not allowed');
+  try {
+    await symlink(outsidePath, join(imageDirectory, 'escape.png'));
+  } catch (error) {
+    if (['EACCES', 'ENOSYS', 'ENOTSUP', 'EOPNOTSUPP', 'EPERM'].includes(error?.code)) {
+      t.skip(`symlink creation is unavailable on this platform: ${error.code}`);
+      return;
+    }
+    throw error;
+  }
+
+  await assert.rejects(
+    loadPosts({ contentDir, schemaPath }),
+    /symlink-escape.*travers|travers.*symlink-escape|not a file within/i,
+  );
 });
 
 test('loadPosts rejects unsafe post directory names', async () => {
@@ -206,4 +273,34 @@ test('loadPosts rejects duplicate explicit anchor IDs and a repeated title H1', 
   const titleDir = await postTree();
   await addPost(titleDir, 'title-repeat', source({ title: 'Same title', body: '# Same title\n\nText.\n' }));
   await assert.rejects(loadPosts({ contentDir: titleDir, schemaPath }), /title.*h1|h1.*title/i);
+});
+
+test('loadPosts rejects a repeated title H1 by Markdown-visible text', async () => {
+  for (const [slug, heading] of [
+    ['strong-title', '# **Same title**'],
+    ['emphasis-title', '# *Same title*'],
+    ['linked-title', '# Same [title](https://example.com)'],
+  ]) {
+    const contentDir = await postTree();
+    await addPost(contentDir, slug, source({
+      title: 'Same title',
+      body: `${heading}\n\nText.\n`,
+    }));
+    await assert.rejects(
+      loadPosts({ contentDir, schemaPath }),
+      /title.*h1|h1.*title/i,
+      heading,
+    );
+  }
+});
+
+test('loadPosts permits a formatted H1 with different visible text', async () => {
+  const contentDir = await postTree();
+  await addPost(contentDir, 'different-h1', source({
+    title: 'Same title',
+    body: '# **A different heading**\n\nText.\n',
+  }));
+
+  const [post] = await loadPosts({ contentDir, schemaPath });
+  assert.equal(post.slug, 'different-h1');
 });
