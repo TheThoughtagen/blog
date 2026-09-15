@@ -1,7 +1,7 @@
-import { mkdir, writeFile, cp, rm, readFile, readdir } from 'node:fs/promises';
+import { mkdir, writeFile, cp, rm, readFile, readdir, realpath } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { resolve, join } from 'node:path';
+import { resolve, join, relative, isAbsolute, dirname, basename, sep } from 'node:path';
 import { site as sourceSite } from '../site.config.mjs';
 import { externalPosts } from '../content/links.mjs';
 import { renderMascot } from './mascot.mjs';
@@ -195,11 +195,55 @@ function searchArticle(article) {
   };
 }
 
-export async function writeSite({ rootDir, outputDir, site, articles, links }) {
-  const destination = resolve(outputDir);
-  if (destination === resolve(destination, '..') || destination === resolve(rootDir)) {
-    throw new Error('outputDir must be a dedicated directory, not the filesystem or project root.');
+async function canonicalPath(path) {
+  const absolute = resolve(path);
+  try {
+    return await realpath(absolute);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+    const parent = dirname(absolute);
+    if (parent === absolute) throw error;
+    return join(await canonicalPath(parent), basename(absolute));
   }
+}
+
+function isStrictDescendant(parent, candidate) {
+  const path = relative(parent, candidate);
+  return path !== '' && path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
+}
+
+async function validateOutputDestination(rootDir, outputDir) {
+  const [root, destination, publicDir] = await Promise.all([
+    realpath(resolve(rootDir)),
+    canonicalPath(outputDir),
+    canonicalPath(join(rootDir, 'public')),
+  ]);
+  if (!isStrictDescendant(root, destination) || destination === publicDir || isStrictDescendant(publicDir, destination)) {
+    throw new Error('outputDir must be a dedicated canonical strict descendant within the project boundary.');
+  }
+  return destination;
+}
+
+function preflightArticleAssets(destination, articles) {
+  const reserved = new Set(['index.html', 'index.md']);
+  for (const article of articles) {
+    const noteDir = join(destination, 'notes', article.slug);
+    for (const asset of article.localAssets ?? []) {
+      const assetDestination = resolve(noteDir, asset.source);
+      const path = relative(noteDir, assetDestination);
+      if (!path || path === '..' || path.startsWith(`..${sep}`) || isAbsolute(path)) {
+        throw new Error(`Article asset must remain inside its note directory: ${article.slug}/${asset.source}`);
+      }
+      if (reserved.has(path.toLowerCase())) {
+        throw new Error(`Article asset uses a reserved generated file name: ${article.slug}/${asset.source}`);
+      }
+    }
+  }
+}
+
+export async function writeSite({ rootDir, outputDir, site, articles, links }) {
+  const destination = await validateOutputDestination(rootDir, outputDir);
+  preflightArticleAssets(destination, articles);
   await rm(destination, { recursive: true, force: true });
   await mkdir(destination, { recursive: true });
   await cp(join(rootDir, 'public'), destination, { recursive: true });
@@ -221,7 +265,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
     const noteDir = join(destination, 'notes', article.slug);
     await writeFile(join(noteDir, 'index.md'), article.source);
     for (const asset of article.localAssets) {
-      const assetDestination = join(noteDir, asset.source);
+      const assetDestination = resolve(noteDir, asset.source);
       await mkdir(resolve(assetDestination, '..'), { recursive: true });
       await cp(asset.resolvedPath, assetDestination);
     }

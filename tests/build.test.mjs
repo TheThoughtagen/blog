@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels, build } from '../scripts/build.mjs';
@@ -40,6 +40,15 @@ const expectedIgnitionTools = [
   ['ignition-mcp', 'https://whiskeyhouse.github.io/ignition-mcp/', 'https://github.com/WhiskeyHouse/ignition-mcp'],
   ['Ignition Git Module', 'https://whiskeyhouse.github.io/ignition-git-module/', 'https://github.com/WhiskeyHouse/ignition-git-module'],
 ];
+
+async function createBuildRoot() {
+  const workspace = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
+  const rootDir = join(workspace, 'project');
+  await mkdir(rootDir);
+  await cp(resolve('public'), join(rootDir, 'public'), { recursive: true });
+  await cp(resolve('frontmatter.schema.json'), join(rootDir, 'frontmatter.schema.json'));
+  return rootDir;
+}
 
 test('validateContent accepts the checked-in configuration and content', () => {
   assert.doesNotThrow(() => validateContent(site, articles, externalPosts));
@@ -151,10 +160,10 @@ test('validateContent rejects unsafe or incomplete Ignition tool destinations', 
 });
 
 test('build publishes five safe Ignition tool cards and indexes their documentation for command search', async () => {
-  const outputDir = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
-  await build({ contentDir: join(outputDir, 'missing-content'), outputDir: join(outputDir, 'site') });
-  const lab = await readFile(join(outputDir, 'site/lab/index.html'), 'utf8');
-  const searchIndex = JSON.parse(await readFile(join(outputDir, 'site/assets/data.json'), 'utf8'));
+  const rootDir = await createBuildRoot();
+  await build({ rootDir, contentDir: join(rootDir, 'missing-content'), outputDir: join(rootDir, 'site') });
+  const lab = await readFile(join(rootDir, 'site/lab/index.html'), 'utf8');
+  const searchIndex = JSON.parse(await readFile(join(rootDir, 'site/assets/data.json'), 'utf8'));
 
   assert.match(lab, /<section class="ignition-tools"[^>]+aria-labelledby="ignition-tools-title"/);
   assert.equal((lab.match(/class="ignition-project-card"/g) || []).length, 5);
@@ -168,9 +177,9 @@ test('build publishes five safe Ignition tool cards and indexes their documentat
 });
 
 test('build publishes a complete Markdown note with renderer HTML, nested navigation, source, assets, and wraparound', async () => {
-  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
-  const contentDir = join(temporary, 'posts');
-  const outputDir = join(temporary, 'site');
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
   const source = `---
 title: "Escaping <systems>"
 description: "A safer & useful note."
@@ -193,7 +202,7 @@ Hello **rendered** world.
   await writeFile(join(contentDir, 'escaping-systems/index.md'), source);
   await writeFile(join(contentDir, 'escaping-systems/images/diagram.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
 
-  await build({ contentDir, outputDir });
+  await build({ rootDir, contentDir, outputDir });
 
   const html = await readFile(join(outputDir, 'notes/escaping-systems/index.html'), 'utf8');
   const markdown = await readFile(join(outputDir, 'notes/escaping-systems/index.md'), 'utf8');
@@ -217,9 +226,9 @@ Hello **rendered** world.
 });
 
 test('build supports an empty notebook without note URLs, feed items, or heading navigation', async () => {
-  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
-  const outputDir = join(temporary, 'site');
-  await build({ contentDir: join(temporary, 'missing'), outputDir });
+  const rootDir = await createBuildRoot();
+  const outputDir = join(rootDir, 'site');
+  await build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir });
 
   const home = await readFile(join(outputDir, 'index.html'), 'utf8');
   const lab = await readFile(join(outputDir, 'lab/index.html'), 'utf8');
@@ -239,9 +248,9 @@ test('build supports an empty notebook without note URLs, feed items, or heading
 });
 
 test('a Markdown note without H2 or H3 headings omits the on-page navigation', async () => {
-  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
-  const contentDir = join(temporary, 'posts');
-  const outputDir = join(temporary, 'site');
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
   await mkdir(join(contentDir, 'plain-note'), { recursive: true });
   await writeFile(join(contentDir, 'plain-note/index.md'), `---
 title: "Plain note"
@@ -251,23 +260,88 @@ category: "Development"
 ---
 Just the body.
 `);
-  await build({ rootDir: resolve('.'), contentDir, outputDir });
+  await build({ rootDir, contentDir, outputDir });
   const html = await readFile(join(outputDir, 'notes/plain-note/index.html'), 'utf8');
   assert.doesNotMatch(html, /aria-label="On this page"/);
 });
 
 test('build clears only its injected output directory', async () => {
-  const temporary = await mkdtemp(join(tmpdir(), 'fieldnotes-build-'));
-  const outputDir = join(temporary, 'site');
-  const sibling = join(temporary, 'keep.txt');
+  const rootDir = await createBuildRoot();
+  const outputDir = join(rootDir, 'site');
+  const sibling = join(rootDir, 'keep.txt');
   await mkdir(outputDir);
   await writeFile(join(outputDir, 'stale.txt'), 'stale');
   await writeFile(sibling, 'keep');
 
-  await build({ contentDir: join(temporary, 'missing'), outputDir });
+  await build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir });
 
   await assert.rejects(access(join(outputDir, 'stale.txt')), { code: 'ENOENT' });
   assert.equal(await readFile(sibling, 'utf8'), 'keep');
+});
+
+test('build rejects note assets that collide with generated files before clearing output', async () => {
+  for (const assetName of ['index.html', 'Index.HTML', 'index.md']) {
+    const rootDir = await createBuildRoot();
+    const contentDir = join(rootDir, 'posts');
+    const outputDir = join(rootDir, 'site');
+    await mkdir(join(contentDir, 'reserved-asset'), { recursive: true });
+    await writeFile(join(contentDir, 'reserved-asset/index.md'), `---
+title: "Reserved asset"
+description: "A note with an unsafe asset name."
+date: "2026-09-15"
+category: "Development"
+---
+![Collision](${assetName})
+`);
+    if (assetName !== 'index.md') await writeFile(join(contentDir, 'reserved-asset', assetName), 'asset payload');
+    await mkdir(outputDir);
+    await writeFile(join(outputDir, 'sentinel.txt'), 'keep');
+
+    await assert.rejects(
+      build({ rootDir, contentDir, outputDir }),
+      /asset.*reserved|generated.*file|index\.(?:html|md)/i,
+      assetName,
+    );
+    assert.equal(await readFile(join(outputDir, 'sentinel.txt'), 'utf8'), 'keep', assetName);
+  }
+});
+
+test('build rejects output directories outside its canonical project boundary before clearing them', async () => {
+  for (const location of ['root', 'ancestor', 'sibling', 'public']) {
+    const rootDir = await createBuildRoot();
+    const workspace = resolve(rootDir, '..');
+    const outputDir = {
+      root: rootDir,
+      ancestor: workspace,
+      sibling: join(workspace, 'sibling'),
+      public: join(rootDir, 'public'),
+    }[location];
+    await mkdir(outputDir, { recursive: true });
+    const sentinel = join(outputDir, `keep-${location}.txt`);
+    await writeFile(sentinel, 'keep');
+
+    await assert.rejects(
+      build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir }),
+      /outputDir.*dedicated|strict descendant|project boundary/i,
+      location,
+    );
+    assert.equal(await readFile(sentinel, 'utf8'), 'keep', location);
+  }
+});
+
+test('build rejects a symlinked output directory that canonically escapes the project', async () => {
+  const rootDir = await createBuildRoot();
+  const escaped = join(resolve(rootDir, '..'), 'escaped-output');
+  const outputDir = join(rootDir, 'linked-output');
+  await mkdir(escaped);
+  await writeFile(join(escaped, 'sentinel.txt'), 'keep');
+  await symlink(escaped, outputDir, 'dir');
+
+  await assert.rejects(
+    build({ rootDir, contentDir: join(rootDir, 'missing'), outputDir }),
+    /outputDir.*strict descendant|project boundary/i,
+  );
+  assert.equal(await readFile(join(escaped, 'sentinel.txt'), 'utf8'), 'keep');
 });
 
 test('escapeHtml escapes markup, ampersands, both quote types, and stringifies values', () => {
