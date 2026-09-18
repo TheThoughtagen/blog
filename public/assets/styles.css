@@ -680,3 +680,29 @@
   .statusbar [data-vim-toggle]:hover { filter: brightness(1.15); }
   .statusbar :focus-visible { outline-offset: -3px; }
 }
+
+@layer components {
+  .contact-card-page .secondary-header { margin-bottom: 32px; }
+  .card-shell { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 34px; align-items: stretch; }
+  .contact-card-panel { min-width: 0; padding: 30px; border: 1px solid var(--line); background: var(--panel); }
+  .card-panel-top { display: flex; gap: 22px; align-items: flex-start; padding-bottom: 25px; border-bottom: 1px solid var(--line); }
+  .card-panel-top h2 { margin: 8px 0 10px; font-size: clamp(32px, 4vw, 52px); }
+  .card-panel-top p { max-width: 620px; font-size: 14px; line-height: 1.8; }
+  .card-link-stack { margin-top: 12px; }
+  .card-link-stack .connection > span:last-child { color: var(--accent); overflow-wrap: anywhere; text-align: right; }
+  .card-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .card-terminal { min-width: 0; padding: 26px; border: 1px solid var(--line); background: var(--terminal); color: var(--terminal-ink); display: flex; flex-direction: column; justify-content: center; }
+  .card-terminal .overline { color: var(--terminal-ink); opacity: .75; }
+  .card-terminal pre { margin: 22px 0; color: var(--terminal-ink); font: 12px/1.9 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .card-terminal p { color: var(--terminal-ink); opacity: .8; font-size: 12px; line-height: 1.8; }
+}
+
+@layer responsive {
+  @media (max-width: 700px) {
+    .card-shell { grid-template-columns: 1fr; gap: 18px; }
+    .contact-card-panel, .card-terminal { padding: 22px; }
+    .card-panel-top { gap: 16px; }
+    .card-link-stack .connection { align-items: flex-start; flex-direction: column; gap: 4px; }
+    .card-link-stack .connection > span:last-child { text-align: left; }
+  }
+}

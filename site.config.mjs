@@ -12,7 +12,7 @@ export const site = {
     ],
   },
   description: 'Patrick Mannion’s notebook on industrial software, reliable integrations, AI experiments, and leading technical teams.',
-  siteUrl: 'https://awake-iris-z6ww.here.now/',
+  siteUrl: 'https://thoughts.cruciblesoftware.co/',
   github: { username: 'TheThoughtagen', repositories: [] },
   ignitionTools: [
     {

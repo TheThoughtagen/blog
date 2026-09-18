@@ -117,6 +117,7 @@ const commands = [
   { title: ':home', description: 'Return to the notebook', action: () => { location.href = '/'; } },
   { title: ':lab', description: 'Visit the workbench', action: () => { location.href = '/lab/'; } },
   { title: ':about', description: 'Behind the terminal', action: () => { location.href = '/about/'; } },
+  { title: ':card', description: 'Open Patrick Mannion contact card', action: () => { location.href = '/card/'; } },
   { title: ':book', description: 'Book a call', action: () => { location.href = '/connect/#book'; } },
   { title: ':subscribe', description: 'Subscribe by email', action: () => { location.href = '/connect/#subscribe'; } },
   ...themes.map((theme) => ({ title: `:theme ${theme}`, description: `Switch to the ${theme} color theme`, action: () => setTheme(theme) })),

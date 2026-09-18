@@ -212,7 +212,7 @@ Hello **rendered** world.
   assert.doesNotMatch(html, /<script>alert\('unsafe'\)<\/script>/);
   assert.match(html, /aria-label="On this page"[\s\S]*href="#first-boundary"[\s\S]*<ol>[\s\S]*href="#inner-detail"/);
   assert.match(html, /<time datetime="2026-09-15">15 Sep 2026<\/time>/);
-  assert.match(html, /rel="canonical" href="https:\/\/awake-iris-z6ww\.here\.now\/notes\/escaping-systems\/"/);
+  assert.match(html, /rel="canonical" href="https:\/\/thoughts\.cruciblesoftware\.co\/notes\/escaping-systems\/"/);
   assert.match(html, /property="og:type" content="article"/);
   assert.match(html, /property="article:published_time" content="2026-09-15"/);
   assert.match(html, /data-copy-markdown/);
@@ -257,8 +257,8 @@ Newer body.
   assert.match(article, /href="\/tags\/data-quality\/"[^>]*>Data Quality<\/a>/);
   assert.match(archive, /<h1>Data Quality<span class="accent">\.<\/span><\/h1>/);
   assert.ok(archive.indexOf('Newer note') < archive.indexOf('Older note'), 'tag archive preserves publication ordering');
-  assert.match(sitemap, /<loc>https:\/\/awake-iris-z6ww\.here\.now\/tags\/data-quality\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/awake-iris-z6ww\.here\.now\/tags\/reliability\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/tags\/data-quality\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/tags\/reliability\/<\/loc>/);
 });
 
 test('build materializes Unicode tag archives at decoded static-server paths', async () => {
@@ -541,17 +541,22 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   const lab = await readFile(join(outputDir, 'lab/index.html'), 'utf8');
   const about = await readFile(join(outputDir, 'about/index.html'), 'utf8');
   const connect = await readFile(join(outputDir, 'connect/index.html'), 'utf8');
+  const card = await readFile(join(outputDir, 'card/index.html'), 'utf8');
+  const vcard = await readFile(join(outputDir, 'patrick-mannion.vcf'), 'utf8');
   const feed = await readFile(join(outputDir, 'feed.xml'), 'utf8');
   const sitemap = await readFile(join(outputDir, 'sitemap.xml'), 'utf8');
   const data = JSON.parse(await readFile(join(outputDir, 'assets/data.json'), 'utf8'));
-  assert.match(home, /first field note in progress/i);
+  assert.match(home, /no published field notes yet/i);
   assert.deepEqual(data.articles, []);
   assert.doesNotMatch(sitemap, /\/notes\//);
   assert.doesNotMatch(feed, /<item>/);
   assert.match(feed, /<rss version="2\.0"><channel>/);
+  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/card\/<\/loc>/);
   assert.match(lab, /Ignition tools/);
   assert.match(about, /About Patrick/);
   assert.match(connect, /Say hello/);
+  assert.match(card, /Patrick Mannion contact card|patrick@cruciblesoftware\.co/);
+  assert.match(vcard, /FN:Patrick Mannion/);
 });
 
 test('a Markdown note without H2 or H3 headings omits the on-page navigation', async () => {

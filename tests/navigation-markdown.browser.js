@@ -273,7 +273,7 @@ async function browserChecks(page) {
   await page.goto(base + '/__empty/');
   const emptyState = page.locator('.empty-notebook, .publication-empty').first();
   check(await emptyState.isVisible(), 'Default empty publication state is visible');
-  check((await emptyState.innerText()).includes('First field note in progress.'), 'Empty publication state explains that the first note is in progress');
+  check((await emptyState.innerText()).includes('No published field notes yet.'), 'Empty publication state explains that no notes are published');
   check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Default empty publication has no mobile horizontal overflow');
 
   await page.goto(base + '/lab/');
