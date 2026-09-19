@@ -83,6 +83,22 @@ test('deployment manifest accepts built webfonts with their browser MIME types',
   );
 });
 
+test('deployment manifest accepts downloadable vCards', async t => {
+  const directory = await fixture(t);
+  await writeFile(join(directory, 'patrick-mannion.vcf'), 'BEGIN:VCARD\nVERSION:4.0\nFN:Patrick Mannion\nEND:VCARD\n');
+
+  const files = await collectFiles(directory);
+  assert.equal(files.find(file => file.path === 'patrick-mannion.vcf')?.contentType, 'text/vcard; charset=utf-8');
+});
+
+test('deployment manifest accepts PNG images', async t => {
+  const directory = await fixture(t);
+  await writeFile(join(directory, 'headshot.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+  const files = await collectFiles(directory);
+  assert.equal(files.find(file => file.path === 'headshot.png')?.contentType, 'image/png');
+});
+
 test('deployment manifest continues to reject unsupported asset types', async t => {
   const directory = await fixture(t);
   await writeFile(join(directory, 'payload.exe'), 'not-public');

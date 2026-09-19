@@ -9,6 +9,54 @@ import { loadPosts, publishedPosts, selectFeatured, tagSlug } from './posts.mjs'
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 export const categories = ['Industrial software', 'Development', 'Leadership', 'AI & ML'];
+const contact = Object.freeze({
+  email: 'patrick@cruciblesoftware.co',
+  companyUrl: 'https://cruciblesoftware.co/',
+  vcardPath: '/patrick-mannion.vcf',
+  headshotPath: '/assets/patrick-mannion-headshot.png',
+});
+const featuredGithubRepos = Object.freeze([
+  {
+    name: 'ignition-mcp',
+    fullName: 'WhiskeyHouse/ignition-mcp',
+    url: 'https://github.com/WhiskeyHouse/ignition-mcp',
+    description: 'Ignition (8.3 and above) MCP server work with the new REST API',
+    stars: 36,
+    language: 'Python',
+  },
+  {
+    name: 'ignition-ide-plugins',
+    fullName: 'TheThoughtagen/ignition-ide-plugins',
+    url: 'https://github.com/TheThoughtagen/ignition-ide-plugins',
+    description: 'Neovim Terminal IDE Lazy-Vim plugin for Ignition by Inductive Automation',
+    stars: 14,
+    language: 'Python',
+  },
+  {
+    name: 'ignition-lint',
+    fullName: 'TheThoughtagen/ignition-lint',
+    url: 'https://github.com/TheThoughtagen/ignition-lint',
+    description: "Ignition Linter for Jython Scripting, Perspective JSON's and more!",
+    stars: 11,
+    language: 'Python',
+  },
+  {
+    name: 'ignition-cli',
+    fullName: 'TheThoughtagen/ignition-cli',
+    url: 'https://github.com/TheThoughtagen/ignition-cli',
+    description: 'Rust CLI for Ignition v8.3+ by Inductive Automation',
+    stars: 1,
+    language: 'Rust',
+  },
+  {
+    name: 'agentic-ignition-tooling',
+    fullName: 'TheThoughtagen/agentic-ignition-tooling',
+    url: 'https://github.com/TheThoughtagen/agentic-ignition-tooling',
+    description: 'Agentic Ignition tooling for API references, auto-linting, test scaffolding, Jython gateway tests, and Playwright E2E',
+    stars: 1,
+    language: 'Shell',
+  },
+]);
 export const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const e = escapeHtml;
 const notePath = (article) => `/notes/${article.slug}/`;
@@ -57,7 +105,10 @@ function profileLinks(site) {
 }
 
 function connectionLinks(site) {
-  return profileLinks(site).map(([label, url]) => `<a class="connection" href="${e(url)}" target="_blank" rel="noopener noreferrer"><span>${label}</span><span aria-hidden="true">&#8599;</span></a>`).join('');
+  return [
+    ...profileLinks(site).map(([label, url]) => `<a class="connection" href="${e(url)}" target="_blank" rel="noopener noreferrer"><span>${label}</span><span aria-hidden="true">&#8599;</span></a>`),
+    `<a class="connection" href="/card/"><span>Digital contact card</span><span aria-hidden="true">&#8599;</span></a>`,
+  ].join('');
 }
 
 function authorLinks(site) {
@@ -83,6 +134,34 @@ function connectPage(site) {
   return shell(site, { title: 'Connect', path: '/connect/', active: 'connect', body: `<div class="wrap secondary-page"><div class="overline">04 / HUMAN CONNECTIONS</div><header class="secondary-header"><div><h1>Say hello.<br><span class="accent">I’m Patrick.</span></h1><p>Working on a similar problem? Send me the note you’re responding to, a little context, and what you’re trying to figure out.</p></div><div class="lab-glyph" aria-hidden="true">[ <span>hello_</span> ]<small>THERE IS A HUMAN ON THIS END.</small></div></header><div class="connect-profiles">${connectionLinks(site)}</div>${renderChannels(site)}<p class="connection-privacy">Booking is handled by the connected calendar provider. Email signup is handled by the connected newsletter provider. This site does not store your email address or calendar details.</p></div>` });
 }
 
+function githubProfile(site) {
+  return site.github.username ? `https://github.com/${site.github.username}` : 'https://github.com/TheThoughtagen';
+}
+
+function starLabel(stars) {
+  return `${stars} ${stars === 1 ? 'star' : 'stars'}`;
+}
+
+function cardRepoHighlights(site) {
+  return `<section class="card-repos" aria-labelledby="card-repos-title" data-card-repos><div class="card-section-heading"><div><div class="overline">PUBLIC WORK / GITHUB</div><h2 id="card-repos-title">Repos worth opening.</h2></div><p data-card-repos-status>Static public snapshot. The page refreshes from GitHub when the public API is available.</p></div><div class="card-repo-grid">${featuredGithubRepos.map((repo) => `<a class="card-repo" href="${e(repo.url)}" target="_blank" rel="noopener noreferrer" data-repo-name="${e(repo.name)}" data-repo-full-name="${e(repo.fullName)}"><span class="card-repo-top"><strong>${e(repo.name)}</strong><span data-repo-stars>${e(starLabel(repo.stars))}</span></span><p data-repo-description>${e(repo.description)}</p><span class="card-repo-meta"><span data-repo-language>${e(repo.language)}</span><span>GitHub &#8599;</span></span></a>`).join('')}</div></section>`;
+}
+
+function cardPage(site) {
+  const github = githubProfile(site);
+  const links = [
+    ['Email', `mailto:${contact.email}`, contact.email],
+    ['LinkedIn', site.links.linkedin, 'linkedin.com/in/mannionpatrick'],
+    ['Blog home', '/', site.siteUrl ? new URL('/', site.siteUrl).hostname : 'thoughts.cruciblesoftware.co'],
+    ['Company', contact.companyUrl, 'cruciblesoftware.co'],
+  ];
+  const body = `<div class="wrap secondary-page contact-card-page"><div class="overline">05 / DIGITAL CONTACT</div><header class="secondary-header card-header"><div><h1>Patrick Mannion<span class="accent">.</span></h1><p>A small contact card for conversations about industrial software, Ignition systems, production data, and the work of making systems easier to diagnose.</p><div class="card-primary-actions"><a class="button primary card-github-cta" href="${e(github)}" target="_blank" rel="noopener noreferrer">GitHub @${e(site.github.username || 'TheThoughtagen')} <span>&#8599;</span></a><a class="button" href="mailto:${e(contact.email)}">Email Patrick <span>&#8594;</span></a></div></div><section class="card-portrait" data-card-hook aria-label="Patrick Mannion headshot"><div class="card-photo-frame"><img class="card-headshot" src="${e(contact.headshotPath)}" width="1145" height="1374" alt="Headshot of Patrick Mannion" decoding="async"></div><div class="card-hook-caption"><span class="signal-dot"></span><span data-card-hook-status>CRT headshot online.</span></div></section></header><div class="card-shell"><section class="contact-card-panel" aria-labelledby="contact-card-title"><div class="card-panel-top"><a class="author-monogram" href="/about/" aria-label="About ${e(site.author)}">PM<span aria-hidden="true">_</span></a><div><div class="overline">FIELDNOTES CONTACT</div><h2 id="contact-card-title">${e(site.author)}</h2><p>${e(site.bio?.short || site.description)}</p></div></div><div class="card-link-stack"><a class="connection card-feature-link" href="${e(github)}" target="_blank" rel="noopener noreferrer"><span>GitHub</span><span>github.com/${e(site.github.username || 'TheThoughtagen')}</span></a>${links.map(([label, url, detail]) => `<a class="connection" href="${e(url)}"${url.startsWith('http') ? ' target="_blank" rel="noopener noreferrer"' : ''}><span>${e(label)}</span><span>${e(detail)}</span></a>`).join('')}</div><div class="card-actions"><a class="button" href="${e(contact.vcardPath)}" download>Download vCard <span>&#8595;</span></a></div></section><aside class="card-terminal" aria-label="Contact details"><div class="overline">OPEN CHANNELS</div><pre>github.com/${e(site.github.username || 'TheThoughtagen')}
+ patrick@cruciblesoftware.co
+ linkedin.com/in/mannionpatrick
+ thoughts.cruciblesoftware.co
+ cruciblesoftware.co</pre><p>If we met at ICC, send the specific problem or note you want to compare. Details beat pitches.</p></aside></div>${cardRepoHighlights(site)}</div>`;
+  return shell(site, { title: 'Patrick Mannion contact card', description: 'Patrick Mannion digital contact card for FIELDNOTES and Crucible Software.', path: '/card/', active: 'card', body });
+}
+
 function shell(site, { title, description = site.description, path = '/', active = 'articles', body, article }) {
   const absolute = site.siteUrl ? new URL(path, site.siteUrl).href : '';
   const pageTitle = title ? `${title} | ${site.name}` : `${site.name} | ${site.author} on industrial software`;
@@ -94,10 +173,10 @@ function shell(site, { title, description = site.description, path = '/', active
 <body data-page="${article ? 'article' : active}"><template id="mascot-template">${renderMascot()}</template><a class="skip-link" href="#main">Skip to content</a><div class="read-progress" aria-hidden="true"></div>
 <header class="site-header wrap"><a class="brand" href="/" aria-label="${e(site.name)} home"><span class="brand-symbol" aria-hidden="true">f<span>_</span></span><span>${e(site.name)}<span class="brand-cursor">_</span></span></a><nav aria-label="Main navigation"><a href="/#notebook" ${active === 'articles' ? 'aria-current="page"' : ''}>Articles</a><a href="/lab/" ${active === 'lab' ? 'aria-current="page"' : ''}>The lab</a><a href="/about/" ${active === 'about' ? 'aria-current="page"' : ''}>About Patrick</a><a class="nav-call" href="/connect/" ${active === 'connect' ? 'aria-current="page"' : ''}>Say hello &#8599;</a></nav><div class="header-tools"><button class="search-trigger" data-search aria-label="Search notes and commands"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path></svg><span>Search</span><kbd>/</kbd></button><button class="theme-toggle" data-theme-toggle aria-label="Change color theme"><span aria-hidden="true">&#9680;</span><span class="theme-name">Green</span></button></div></header>
 <main id="main" tabindex="-1">${body}${article ? `<div class="wrap">${renderChannels(site)}</div>` : ''}</main>
-<footer class="site-footer wrap"><div><a class="footer-brand" href="/">${e(site.name)}<span>_</span></a><p>Notes by <a href="/about/">${e(site.author)}</a> on software and technical teams.</p><button class="reboot-link" data-reboot>Replay terminal boot <span aria-hidden="true">[ &gt;_ ]</span></button></div><div class="footer-right"><a href="/connect/#subscribe">Subscribe by email &#8599;</a><a href="/connect/#book">Book a call &#8599;</a><a href="/feed.xml">RSS feed &#8599;</a>${profileLinks(site).map(([label, url]) => `<a href="${e(url)}" target="_blank" rel="noopener noreferrer">${label} &#8599;</a>`).join('')}<a href="/about/">About ${e(site.author)} &#8599;</a><span>Thanks for reading.</span></div></footer>
+<footer class="site-footer wrap"><div><a class="footer-brand" href="/">${e(site.name)}<span>_</span></a><p>Notes by <a href="/about/">${e(site.author)}</a> on software and technical teams.</p><button class="reboot-link" data-reboot>Replay terminal boot <span aria-hidden="true">[ &gt;_ ]</span></button></div><div class="footer-right"><a href="/connect/#subscribe">Subscribe by email &#8599;</a><a href="/connect/#book">Book a call &#8599;</a><a href="/card/">Digital card &#8599;</a><a href="/feed.xml">RSS feed &#8599;</a>${profileLinks(site).map(([label, url]) => `<a href="${e(url)}" target="_blank" rel="noopener noreferrer">${label} &#8599;</a>`).join('')}<a href="/about/">About ${e(site.author)} &#8599;</a><span>Thanks for reading.</span></div></footer>
 <div class="statusbar"><div><button data-vim-toggle aria-pressed="true" aria-label="Toggle Vim navigation" title="Turn keyboard navigation on or off">VIM: ON</button><a class="status-file" href="${article ? notePath(article) + 'index.md' : active === 'articles' ? '/#notebook' : '#main'}" title="${article ? 'Open this article as Markdown' : active === 'articles' ? 'Go to the notebook' : 'Back to page content'}">${article ? e(article.slug) + '.md' : active + '.md'}</a></div><div class="key-hints"><span><kbd>j</kbd><kbd>k</kbd> navigate</span><button data-search><kbd>/</kbd> search</button><button data-help><kbd>?</kbd> keys</button></div><span class="status-position" data-scroll-position>TOP</span></div>
 <dialog id="command-dialog" aria-labelledby="command-title"><div class="dialog-heading"><span id="command-title">COMMAND LINE</span><button data-close aria-label="Close search">esc</button></div><div class="command-field"><span aria-hidden="true">&gt;</span><input id="command-input" type="search" autocomplete="off" spellcheck="false" placeholder="Find a note, or type :help" aria-label="Search notes and commands" aria-controls="command-results"></div><div id="command-results" class="command-results" aria-live="polite"></div><div class="dialog-footer"><span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> select <kbd>enter</kbd> open</span><span>Start with <kbd>:</kbd> for commands</span></div></dialog>
-<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><span id="help-title">A LITTLE LESS MOUSE</span><button data-close aria-label="Close keyboard help">esc</button></div><p class="help-intro">A familiar way to move around. All controls also work with a mouse or touch.</p><dl class="shortcut-list"><div><dt><kbd>h</kbd> / <kbd>l</kbd></dt><dd>Back / forward in browser history</dd></div><div><dt><kbd>j</kbd> / <kbd>k</kbd></dt><dd>Next / previous visible note</dd></div><div><dt><kbd>enter</kbd></dt><dd>Open the focused note</dd></div><div><dt><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></dt><dd>Top / bottom of page</dd></div><div><dt><kbd>/</kbd> or <kbd>Ctrl/Cmd K</kbd></dt><dd>Search the notebook</dd></div><div><dt><kbd>:</kbd></dt><dd>Open the command line</dd></div><div><dt><kbd>?</kbd> / <kbd>esc</kbd></dt><dd>Help / close a dialog</dd></div></dl><p class="help-intro">Commands: <code>:home</code>, <code>:lab</code>, <code>:about</code>, <code>:theme green</code>, <code>:theme amber</code>, <code>:theme paper</code>, <code>:reboot</code>. Turn off Vim navigation in the bottom-left status bar to disable single-key shortcuts. Ctrl/Cmd K always opens search.</p></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><span id="help-title">A LITTLE LESS MOUSE</span><button data-close aria-label="Close keyboard help">esc</button></div><p class="help-intro">A familiar way to move around. All controls also work with a mouse or touch.</p><dl class="shortcut-list"><div><dt><kbd>h</kbd> / <kbd>l</kbd></dt><dd>Back / forward in browser history</dd></div><div><dt><kbd>j</kbd> / <kbd>k</kbd></dt><dd>Next / previous visible note</dd></div><div><dt><kbd>enter</kbd></dt><dd>Open the focused note</dd></div><div><dt><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></dt><dd>Top / bottom of page</dd></div><div><dt><kbd>/</kbd> or <kbd>Ctrl/Cmd K</kbd></dt><dd>Search the notebook</dd></div><div><dt><kbd>:</kbd></dt><dd>Open the command line</dd></div><div><dt><kbd>?</kbd> / <kbd>esc</kbd></dt><dd>Help / close a dialog</dd></div></dl><p class="help-intro">Commands: <code>:home</code>, <code>:lab</code>, <code>:about</code>, <code>:card</code>, <code>:theme green</code>, <code>:theme amber</code>, <code>:theme paper</code>, <code>:reboot</code>. Turn off Vim navigation in the bottom-left status bar to disable single-key shortcuts. Ctrl/Cmd K always opens search.</p></dialog>
 <div class="toast" role="status" aria-live="polite"></div>
 </body></html>`;
 }
@@ -131,7 +210,7 @@ function home(site, articles, links) {
   const notebook = featured
     ? `<div class="archive-layout"><div class="notes-column"><article class="featured-note" data-note data-category="${e(featured.category)}" data-search-text="${e([featured.title, featured.description, featured.category, ...featured.tags].join(' ').toLowerCase())}"><div class="featured-copy"><div class="note-meta"><span class="featured-label"><span aria-hidden="true">*</span> FEATURED NOTE</span><span class="note-type">FIELD NOTE</span></div><span class="category-label">${e(featured.category)}</span><a class="note-link" href="${notePath(featured)}"><h3>${e(featured.title)}</h3><span class="note-arrow" aria-hidden="true">&#8599;</span></a><p>${e(featured.description)}</p><div class="note-bottom"><time datetime="${featured.date}">${dateLabel(featured.date)}</time><span>${featured.readingMinutes} min read</span></div></div><div class="featured-art" aria-hidden="true"><span>FIG. 01 / KNOW YOUR BOUNDARIES</span><div class="boundary-diagram"><div>[ DEVELOPMENT ]</div><i>:<br>:<br>v</i><div>[ SIMULATION ]</div><i>:<br>:<br>v</i><div class="boundary-production">[ PRODUCTION ]</div></div><span class="boundary-caption">TEST HERE. NOT OUT THERE.</span></div></article><div class="note-grid">${rest.map((article) => noteCard(article, articles.indexOf(article))).join('')}</div><div class="empty-search" hidden><span aria-hidden="true">[ 0 RESULTS ]</span><h3>No matching notes.</h3><p>Try another topic or a different search.</p><button class="button" data-reset>Show all notes</button></div><p class="archive-count" aria-live="polite"><span data-note-count>${articles.length}</span> notes in the notebook <span>// END OF LOG</span></p></div>
     <aside class="notebook-sidebar"><div class="sidebar-heading"><span class="signal-dot"></span> FROM THE WORKBENCH</div>${githubPanel(site, 'activity')}<a class="sidebar-lab-link" href="/lab/#github-work">Commits, graph &amp; releases <span>&#8599;</span></a><div class="sidebar-note"><span class="overline">A QUESTION TO START WITH</span><p>Can the next person <em>diagnose it?</em></p><span>Name the symptom. Explain the next step.</span></div></aside></div>`
-    : `<div class="archive-layout"><div class="notes-column"><div class="empty-notebook"><span class="overline">[ NOTEBOOK OPEN ]</span><h3>First field note in progress.</h3><p>The notebook is ready. The first published note will appear here.</p></div><p class="archive-count" aria-live="polite"><span data-note-count>0</span> notes in the notebook <span>// READY</span></p></div><aside class="notebook-sidebar"><div class="sidebar-heading"><span class="signal-dot"></span> FROM THE WORKBENCH</div>${githubPanel(site, 'activity')}<a class="sidebar-lab-link" href="/lab/#github-work">Commits, graph &amp; releases <span>&#8599;</span></a></aside></div>`;
+    : `<div class="archive-layout"><div class="notes-column"><div class="empty-notebook"><span class="overline">[ NOTEBOOK OPEN ]</span><h3>No published field notes yet.</h3><p>The notebook is ready. Published notes will appear here.</p></div><p class="archive-count" aria-live="polite"><span data-note-count>0</span> notes in the notebook <span>// READY</span></p></div><aside class="notebook-sidebar"><div class="sidebar-heading"><span class="signal-dot"></span> FROM THE WORKBENCH</div>${githubPanel(site, 'activity')}<a class="sidebar-lab-link" href="/lab/#github-work">Commits, graph &amp; releases <span>&#8599;</span></a></aside></div>`;
   const body = `<div class="wrap"><div class="eyebrow-line"><span><i class="tiny-square"></i> PERSONAL ENGINEERING LOG</span><span>PATRICK MANNION / FIELDNOTES</span></div>
     <section class="hero"><div class="hero-copy"><div class="overline">// NOTES BY PATRICK MANNION</div><h1>Software for<br><span>the factory floor.<br>Notes from Patrick.</span></h1><p>Production data, unreliable integrations, AI experiments, and the work of leading a technical team. A notebook for working through the details.</p><div class="hero-actions"><a class="button primary" href="#notebook">Explore the notes <span>&#8595;</span></a><a class="text-link" href="/about/">Meet Patrick <span>&#8599;</span></a></div><span class="hero-footnote"><span class="signal-dot"></span> INDUSTRIAL SOFTWARE / DEVELOPMENT / TEAM LEADERSHIP</span></div><div class="hero-artwork" data-welcome><div class="welcome-media">${renderMascot()}<video data-src="/assets/patrick-welcome.mp4" muted playsinline preload="none" aria-label="Patrick walks to the terminal, types, and gives a thumbs-up."></video></div><button class="welcome-replay" type="button" hidden>Play animation</button></div></section>
     ${authorCard(site)}
@@ -254,7 +333,7 @@ const generatedPublicFiles = new Set([
   '404.html', 'feed.xml', 'index.html', 'robots.txt', 'sitemap.xml',
   'assets/data.json', 'assets/fieldnotes-renderer-browser.js', 'assets/katex.min.css',
 ]);
-const generatedPublicDirectories = ['about', 'connect', 'lab', 'notes', 'tags', 'assets/fonts'];
+const generatedPublicDirectories = ['about', 'card', 'connect', 'lab', 'notes', 'tags', 'assets/fonts'];
 
 function isGeneratedPublicPath(path) {
   const normalized = path.split(sep).join('/').toLowerCase();
@@ -358,7 +437,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
       .replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`)
       .replaceAll('__FIELDNOTES_BUILD_VERSION__', version));
   }
-  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.directorySlug}/index.html`, tagPage(site, archive)])];
+  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['card/index.html', cardPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.directorySlug}/index.html`, tagPage(site, archive)])];
   for (const [path, html] of pages) {
     await mkdir(resolve(destination, path, '..'), { recursive: true });
     await writeFile(join(destination, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`));
@@ -375,7 +454,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   await writeFile(join(assets, 'data.json'), searchData);
   await writeFile(join(destination, 'feed.xml'), renderFeed(site, articles));
   await writeFile(join(destination, 'robots.txt'), `User-agent: *\nAllow: /\n${site.siteUrl ? `Sitemap: ${site.siteUrl}sitemap.xml\n` : ''}`);
-  if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', ...articles.map(notePath), ...archives.map((archive) => `/tags/${archive.slug}/`)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
+  if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', '/card/', ...articles.map(notePath), ...archives.map((archive) => `/tags/${archive.slug}/`)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
   return { pageCount: pages.length, noteCount: articles.length };
 }
 

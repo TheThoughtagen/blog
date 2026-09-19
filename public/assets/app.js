@@ -1,5 +1,5 @@
 import { hydrateMermaid, normalizeRenderedDom } from './fieldnotes-renderer-browser.js';
-import { connectGithub } from './github.js';
+import { connectGithub, parseCardRepositories, requestGithub, requestGithubResource } from './github.js';
 import './code-dust.js';
 import './social.js';
 
@@ -95,6 +95,84 @@ function loadData() {
 }
 loadData();
 
+function initCardHook() {
+  const hook = $('[data-card-hook]');
+  if (!hook || !window.fieldnotesArtwork) return;
+  const video = hook.querySelector('[data-card-hook-video]');
+  const status = hook.querySelector('[data-card-hook-status]');
+  if (!video) {
+    hook.classList.add('is-playing');
+    if (status) status.textContent = reducedMotion.matches ? 'CRT headshot ready.' : 'CRT headshot online.';
+    return;
+  }
+  const still = (message = 'Terminal portrait ready.') => {
+    video.pause();
+    hook.classList.remove('is-playing');
+    if (status) status.textContent = message;
+  };
+  const play = async () => {
+    if (paused || reducedMotion.matches) {
+      still(reducedMotion.matches ? 'Still frame: reduced motion.' : 'Still frame: motion paused.');
+      return;
+    }
+    try {
+      const { video: source } = window.fieldnotesArtwork();
+      if (!video.getAttribute('src') || video.getAttribute('src') !== source) video.src = source;
+      await video.play();
+      hook.classList.add('is-playing');
+      if (status) status.textContent = 'Welcome loop online.';
+    } catch {
+      still('Still frame fallback.');
+    }
+  };
+  document.addEventListener('fieldnotes:theme-change', play);
+  reducedMotion.addEventListener('change', play);
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) play();
+      else still();
+    }, { threshold: 0.35 });
+    observer.observe(hook);
+  } else play();
+}
+
+async function hydrateCardRepositories() {
+  const container = $('[data-card-repos]');
+  if (!container) return;
+  const cards = $$('.card-repo[data-repo-name]');
+  const wanted = cards.map(card => card.dataset.repoFullName || card.dataset.repoName).filter(Boolean);
+  const status = $('[data-card-repos-status]');
+  if (!wanted.length) return;
+  try {
+    const results = await Promise.allSettled(wanted.map((fullName) => {
+      const [owner, repo] = fullName.split('/');
+      if (!owner || !repo) throw new Error('Invalid repository highlight.');
+      return requestGithubResource(`repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
+    }));
+    const repositories = parseCardRepositories(
+      results.flatMap(result => result.status === 'fulfilled' ? result.value : []),
+      wanted,
+      wanted.length,
+    );
+    if (!repositories.length) throw new Error('No matching public repositories found.');
+    const byName = new Map(repositories.map(repository => [repository.name, repository]));
+    const byFullName = new Map(repositories.map(repository => [repository.fullName, repository]));
+    for (const card of cards) {
+      const repository = byFullName.get(card.dataset.repoFullName) || byName.get(card.dataset.repoName);
+      if (!repository) continue;
+      card.href = repository.url;
+      card.querySelector('[data-repo-stars]').textContent = `${repository.stars} ${repository.stars === 1 ? 'star' : 'stars'}`;
+      card.querySelector('[data-repo-description]').textContent = repository.description || 'Public GitHub repository.';
+      card.querySelector('[data-repo-language]').textContent = repository.language;
+    }
+    if (status) status.textContent = 'Live public GitHub data loaded.';
+  } catch {
+    if (status) status.textContent = 'Static repo snapshot shown; GitHub API unavailable.';
+  }
+}
+initCardHook();
+hydrateCardRepositories();
+
 const commandDialog = $('#command-dialog');
 const helpDialog = $('#help-dialog');
 const input = $('#command-input');
@@ -117,6 +195,7 @@ const commands = [
   { title: ':home', description: 'Return to the notebook', action: () => { location.href = '/'; } },
   { title: ':lab', description: 'Visit the workbench', action: () => { location.href = '/lab/'; } },
   { title: ':about', description: 'Behind the terminal', action: () => { location.href = '/about/'; } },
+  { title: ':card', description: 'Open Patrick Mannion contact card', action: () => { location.href = '/card/'; } },
   { title: ':book', description: 'Book a call', action: () => { location.href = '/connect/#book'; } },
   { title: ':subscribe', description: 'Subscribe by email', action: () => { location.href = '/connect/#subscribe'; } },
   ...themes.map((theme) => ({ title: `:theme ${theme}`, description: `Switch to the ${theme} color theme`, action: () => setTheme(theme) })),

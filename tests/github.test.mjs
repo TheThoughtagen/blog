@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseActivity, parseReleases, requestGithub } from '../public/assets/github.js';
+import { parseActivity, parseCardRepositories, parseReleases, requestGithub } from '../public/assets/github.js';
 
 const repo = 'example-owner/project';
 const base = `https://github.com/${repo}`;
@@ -89,6 +89,43 @@ test('parseReleases tolerates malformed collections and entries and rejects inva
   }
   assert.deepEqual(parseReleases([null, undefined, {}, 42, 'invalid', release()], repo), [
     { repo, title: 'Version 1', url: `${base}/releases/tag/v1`, date },
+  ]);
+});
+
+test('parseCardRepositories keeps selected public non-fork repositories in configured order', () => {
+  const repositories = [
+    { name: 'noise', html_url: 'https://github.com/example/noise', description: 'Ignore me.', fork: false, archived: false, stargazers_count: 99, language: 'JavaScript' },
+    { name: 'ignition-mcp', full_name: 'WhiskeyHouse/ignition-mcp', html_url: 'https://github.com/WhiskeyHouse/ignition-mcp', description: 'Ignition MCP server.', fork: false, archived: false, stargazers_count: 36, language: 'Python' },
+    { name: 'ignition-cli', html_url: 'https://github.com/TheThoughtagen/ignition-cli', description: 'Rust CLI for Ignition.', fork: false, archived: false, stargazers_count: 1, language: 'Rust' },
+    { name: 'ignition-lint', html_url: 'https://github.com/TheThoughtagen/ignition-lint', description: 'Ignition linter.', fork: false, archived: false, stargazers_count: 11, language: 'Python' },
+    { name: 'forked-tool', html_url: 'https://github.com/TheThoughtagen/forked-tool', description: 'Fork.', fork: true, archived: false, stargazers_count: 5, language: 'Java' },
+    { name: 'archived-tool', html_url: 'https://github.com/TheThoughtagen/archived-tool', description: 'Archive.', fork: false, archived: true, stargazers_count: 5, language: 'Java' },
+    { name: 'unsafe-tool', html_url: 'https://evil.example/unsafe-tool', description: 'Unsafe.', fork: false, archived: false, stargazers_count: 5, language: 'Java' },
+  ];
+
+  assert.deepEqual(parseCardRepositories(repositories, ['WhiskeyHouse/ignition-mcp', 'ignition-lint', 'forked-tool', 'ignition-cli', 'unsafe-tool']), [
+    {
+      name: 'ignition-mcp',
+      fullName: 'WhiskeyHouse/ignition-mcp',
+      url: 'https://github.com/WhiskeyHouse/ignition-mcp',
+      description: 'Ignition MCP server.',
+      stars: 36,
+      language: 'Python',
+    },
+    {
+      name: 'ignition-lint',
+      url: 'https://github.com/TheThoughtagen/ignition-lint',
+      description: 'Ignition linter.',
+      stars: 11,
+      language: 'Python',
+    },
+    {
+      name: 'ignition-cli',
+      url: 'https://github.com/TheThoughtagen/ignition-cli',
+      description: 'Rust CLI for Ignition.',
+      stars: 1,
+      language: 'Rust',
+    },
   ]);
 });
 

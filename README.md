@@ -2,9 +2,9 @@
 
 A static engineering notebook built from Markdown, with RSS, local search, keyboard navigation, three color themes, and optional public GitHub activity/releases. Requires Node.js 24 or newer.
 
-Live preview: https://awake-iris-z6ww.here.now/
+Live site: https://thoughts.cruciblesoftware.co/
 
-Published permanently to the existing here.now account. Patrick’s introduction is configured; LinkedIn and X are configured; additional career details can be added to the bio. Update this existing site rather than creating a new one:
+Published permanently to the existing here.now account backing the public site. Patrick’s introduction is configured; LinkedIn and X are configured; additional career details can be added to the bio. Update this existing site rather than creating a new one:
 
 ```sh
 node scripts/build.mjs
@@ -149,7 +149,7 @@ Every push to `main`, including a merged pull request, runs `.github/workflows/d
 
 The repository’s encrypted Actions secret `HERENOW_API_KEY` supplies authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
 
-`scripts/deploy.mjs` updates only `awake-iris-z6ww`. It includes file hashes to reuse unchanged assets, reads the live version before publishing, and sends it as `baseVersionId` to reject changes made during deployment. The repository is the source of truth; the next deployment replaces edits made directly on the host before that run. An upload failure stops before finalization, and hidden files/symlinks are rejected. The completed run summary links to the deployed site.
+`scripts/deploy.mjs` updates only the here.now site slug `awake-iris-z6ww`, which backs the public `thoughts.cruciblesoftware.co` origin configured in `site.config.mjs`. It includes file hashes to reuse unchanged assets, reads the live version before publishing, and sends it as `baseVersionId` to reject changes made during deployment. The repository is the source of truth; the next deployment replaces edits made directly on the host before that run. An upload failure stops before finalization, and hidden files/symlinks are rejected. The completed run summary links to the deployed site.
 
 Check runs at https://github.com/TheThoughtagen/blog/actions. If a run fails, fix the error and rerun it from GitHub Actions or push a correction to `main`. If replacing an old deployment, rerun the latest workflow rather than an older commit’s run.
 
