@@ -632,7 +632,7 @@
 
 @layer components {
   .author-card { display: flex; align-items: flex-start; gap: 24px; margin: 0 0 38px; padding: 28px; border: 1px solid var(--line); background: var(--panel); }
-  .author-portrait { display: block; flex: 0 0 138px; max-width: 38%; color: inherit; }
+  .author-portrait { display: block; flex: 0 0 164px; max-width: 40%; color: inherit; }
   .author-portrait:hover .card-photo-frame { border-color: var(--accent); filter: brightness(1.06); }
   .author-card-copy { min-width: 0; }
   .author-monogram { display: flex; align-items: center; justify-content: center; flex: 0 0 64px; min-height: 64px; border: 1px solid var(--line); color: var(--accent); font: 22px var(--mono); }
@@ -650,8 +650,8 @@
 }
 @layer responsive {
   @media (max-width: 600px) {
-    .author-card { gap: 16px; padding: 20px; }
-    .author-portrait { flex-basis: 92px; max-width: 34%; }
+    .author-card { flex-direction: column; gap: 18px; padding: 20px; }
+    .author-portrait { flex-basis: auto; width: min(210px, 100%); max-width: 100%; }
     .author-monogram { flex-basis: 42px; min-height: 44px; font-size: 17px; }
     .author-card h2 { font-size: 25px; }
     .author-card .overline { font-size: 8px; }
