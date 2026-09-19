@@ -177,7 +177,10 @@ async function cardQrPage(site) {
     margin: 4,
     color: { dark: '#050805', light: '#ffffff' },
   });
-  const accessibleQr = qrSvg.replace('<svg ', '<svg class="card-qr-code" role="img" aria-label="QR code for Patrick Mannion contact card" ');
+  const accessibleQr = qrSvg
+    .replace('<svg ', '<svg class="card-qr-code" role="img" aria-label="QR code for Patrick Mannion contact card" ')
+    .replace(/fill="#ffffff"/g, 'class="card-qr-light"')
+    .replace(/fill="#050805"/g, 'class="card-qr-dark"');
   const body = `<div class="wrap secondary-page card-qr-page"><div class="overline">06 / CONTACT QR</div><header class="card-qr-header"><div><h1>Scan to save contact<span class="accent">.</span></h1><p>Open this screen when someone needs Patrick Mannion’s card. The code points to the digital contact card, where the vCard download lives.</p></div><nav class="card-qr-actions" aria-label="QR page links"><a class="button primary" href="/card/">Open card <span>&#8594;</span></a><a class="button" href="/">Home <span>&#8594;</span></a></nav></header><section class="card-qr-stage" aria-labelledby="card-qr-title"><div class="qr-terminal-strip" aria-hidden="true"><span>FIELDNOTES://CONTACT/QR</span><span>ECC H</span></div><h2 id="card-qr-title">Scan to save contact</h2><div class="card-qr-frame">${accessibleQr}</div><p class="card-qr-target">${e(cardUrl)}</p></section></div>`;
   return shell(site, { title: 'Scan Patrick Mannion contact card', description: 'Phone-first QR code for Patrick Mannion’s digital contact card.', path: '/card/qr/', active: 'card-qr', body });
 }

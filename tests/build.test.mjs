@@ -576,6 +576,8 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(cardQr, /Scan to save contact/);
   assert.match(cardQr, /https:\/\/thoughts\.cruciblesoftware\.co\/card\//);
   assert.match(cardQr, /class="card-qr-code"/);
+  assert.match(cardQr, /class="card-qr-light"/);
+  assert.match(cardQr, /class="card-qr-dark"/);
   assert.match(cardQr, /href="\/card\/"/);
   assert.match(cardQr, /href="\/card\.webmanifest"/);
   assert.match(cardQr, /:qr/);
