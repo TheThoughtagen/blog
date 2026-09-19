@@ -1,7 +1,9 @@
 import { mkdir, writeFile, cp, rm, readFile, readdir, realpath, lstat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { deflateSync } from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, join, relative, isAbsolute, dirname, basename, sep } from 'node:path';
+import QRCode from 'qrcode';
 import { site as sourceSite } from '../site.config.mjs';
 import { externalPosts } from '../content/links.mjs';
 import { renderMascot } from './mascot.mjs';
@@ -14,6 +16,11 @@ const contact = Object.freeze({
   companyUrl: 'https://cruciblesoftware.co/',
   vcardPath: '/patrick-mannion.vcf',
   headshotPath: '/assets/patrick-mannion-headshot.png',
+});
+const iconSizes = Object.freeze([180, 192, 512]);
+const iconThemes = Object.freeze({
+  green: { bg: '#0b1109', panel: '#10180d', line: '#6ea651', accent: '#b6e889', dim: '#334527' },
+  amber: { bg: '#160f08', panel: '#1f160c', line: '#9f7440', accent: '#efbf70', dim: '#47321b' },
 });
 const featuredGithubRepos = Object.freeze([
   {
@@ -162,21 +169,41 @@ function cardPage(site) {
   return shell(site, { title: 'Patrick Mannion contact card', description: 'Patrick Mannion digital contact card for FIELDNOTES and Crucible Software.', path: '/card/', active: 'card', body });
 }
 
+async function cardQrPage(site) {
+  const cardUrl = site.siteUrl ? new URL('/card/', site.siteUrl).href : '/card/';
+  const qrSvg = await QRCode.toString(cardUrl, {
+    type: 'svg',
+    errorCorrectionLevel: 'H',
+    margin: 4,
+    color: { dark: '#050805', light: '#ffffff' },
+  });
+  const accessibleQr = qrSvg
+    .replace('<svg ', '<svg class="card-qr-code" role="img" aria-label="QR code for Patrick Mannion contact card" ')
+    .replace(/fill="#ffffff"/g, 'class="card-qr-light"')
+    .replace(/fill="#050805"/g, 'class="card-qr-dark"')
+    .replace(/stroke="#050805"/g, 'class="card-qr-dark"');
+  const body = `<div class="wrap secondary-page card-qr-page"><div class="overline">06 / CONTACT QR</div><header class="card-qr-header"><div><h1>Scan to save contact<span class="accent">.</span></h1><p>Open this screen when someone needs Patrick Mannion’s card. The code points to the digital contact card, where the vCard download lives.</p></div><nav class="card-qr-actions" aria-label="QR page links"><a class="button primary" href="/card/">Open card <span>&#8594;</span></a><a class="button" href="/">Home <span>&#8594;</span></a></nav></header><section class="card-qr-stage" aria-labelledby="card-qr-title"><div class="qr-terminal-strip" aria-hidden="true"><span>FIELDNOTES://CONTACT/QR</span><span>ECC H</span></div><h2 id="card-qr-title">Scan to save contact</h2><div class="card-qr-frame">${accessibleQr}</div><p class="card-qr-target">${e(cardUrl)}</p></section></div>`;
+  return shell(site, { title: 'Scan Patrick Mannion contact card', description: 'Phone-first QR code for Patrick Mannion’s digital contact card.', path: '/card/qr/', active: 'card-qr', body });
+}
+
 function shell(site, { title, description = site.description, path = '/', active = 'articles', body, article }) {
   const absolute = site.siteUrl ? new URL(path, site.siteUrl).href : '';
   const pageTitle = title ? `${title} | ${site.name}` : `${site.name} | ${site.author} on industrial software`;
+  const cardManifest = active === 'card' || active === 'card-qr';
+  const manifestPath = cardManifest ? '/card.webmanifest' : '/site.webmanifest';
+  const appTitle = cardManifest ? 'Patrick Card' : site.name;
   return `<!doctype html>
 <html lang="en" data-theme="green">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#111510"><title>${e(pageTitle)}</title><meta name="description" content="${e(description)}">
 <meta property="og:title" content="${e(pageTitle)}"><meta property="og:description" content="${e(description)}"><meta property="og:type" content="${article ? 'article' : 'website'}">${absolute ? `<link rel="canonical" href="${e(absolute)}"><meta property="og:url" content="${e(absolute)}">` : ''}${article ? `<meta property="article:published_time" content="${e(article.date)}">` : ''}
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="alternate" type="application/rss+xml" title="${e(site.name)} RSS" href="/feed.xml"><link rel="stylesheet" href="/assets/katex.min.css"><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/mascot.css"><link rel="stylesheet" href="/assets/boot.css"><script src="/assets/theme.js"></script><script defer src="/assets/boot.js"></script><script type="module" src="/assets/app.js"></script></head>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="manifest" href="${e(manifestPath)}"><link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/fieldnotes-green-180.png"><meta name="apple-mobile-web-app-title" content="${e(appTitle)}"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="alternate" type="application/rss+xml" title="${e(site.name)} RSS" href="/feed.xml"><link rel="stylesheet" href="/assets/katex.min.css"><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/mascot.css"><link rel="stylesheet" href="/assets/boot.css"><script src="/assets/theme.js"></script><script defer src="/assets/boot.js"></script><script type="module" src="/assets/app.js"></script></head>
 <body data-page="${article ? 'article' : active}"><template id="mascot-template">${renderMascot()}</template><a class="skip-link" href="#main">Skip to content</a><div class="read-progress" aria-hidden="true"></div>
-<header class="site-header wrap"><a class="brand" href="/" aria-label="${e(site.name)} home"><span class="brand-symbol" aria-hidden="true">f<span>_</span></span><span>${e(site.name)}<span class="brand-cursor">_</span></span></a><nav aria-label="Main navigation"><a href="/#notebook" ${active === 'articles' ? 'aria-current="page"' : ''}>Articles</a><a href="/lab/" ${active === 'lab' ? 'aria-current="page"' : ''}>The lab</a><a href="/about/" ${active === 'about' ? 'aria-current="page"' : ''}>About Patrick</a><a class="nav-call" href="/connect/" ${active === 'connect' ? 'aria-current="page"' : ''}>Say hello &#8599;</a></nav><div class="header-tools"><button class="search-trigger" data-search aria-label="Search notes and commands"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path></svg><span>Search</span><kbd>/</kbd></button><button class="theme-toggle" data-theme-toggle aria-label="Change color theme"><span aria-hidden="true">&#9680;</span><span class="theme-name">Green</span></button></div></header>
+<header class="site-header wrap"><a class="brand" href="/" aria-label="${e(site.name)} home"><span class="brand-symbol" aria-hidden="true">f<span>_</span></span><span>${e(site.name)}<span class="brand-cursor">_</span></span></a><nav aria-label="Main navigation"><a href="/#notebook" ${active === 'articles' ? 'aria-current="page"' : ''}>Articles</a><a href="/lab/" ${active === 'lab' ? 'aria-current="page"' : ''}>The lab</a><a href="/about/" ${active === 'about' ? 'aria-current="page"' : ''}>About Patrick</a><a href="/card/qr/" ${active === 'card-qr' ? 'aria-current="page"' : ''}>QR card</a><a class="nav-call" href="/connect/" ${active === 'connect' ? 'aria-current="page"' : ''}>Say hello &#8599;</a></nav><div class="header-tools"><button class="search-trigger" data-search aria-label="Search notes and commands"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path></svg><span>Search</span><kbd>/</kbd></button><button class="theme-toggle" data-theme-toggle aria-label="Change color theme"><span aria-hidden="true">&#9680;</span><span class="theme-name">Green</span></button></div></header>
 <main id="main" tabindex="-1">${body}${article ? `<div class="wrap">${renderChannels(site)}</div>` : ''}</main>
-<footer class="site-footer wrap"><div><a class="footer-brand" href="/">${e(site.name)}<span>_</span></a><p>Notes by <a href="/about/">${e(site.author)}</a> on software and technical teams.</p><button class="reboot-link" data-reboot>Replay terminal boot <span aria-hidden="true">[ &gt;_ ]</span></button></div><div class="footer-right"><a href="/connect/#subscribe">Subscribe by email &#8599;</a><a href="/connect/#book">Book a call &#8599;</a><a href="/card/">Digital card &#8599;</a><a href="/feed.xml">RSS feed &#8599;</a>${profileLinks(site).map(([label, url]) => `<a href="${e(url)}" target="_blank" rel="noopener noreferrer">${label} &#8599;</a>`).join('')}<a href="/about/">About ${e(site.author)} &#8599;</a><span>Thanks for reading.</span></div></footer>
+<footer class="site-footer wrap"><div><a class="footer-brand" href="/">${e(site.name)}<span>_</span></a><p>Notes by <a href="/about/">${e(site.author)}</a> on software and technical teams.</p><button class="reboot-link" data-reboot>Replay terminal boot <span aria-hidden="true">[ &gt;_ ]</span></button></div><div class="footer-right"><a href="/connect/#subscribe">Subscribe by email &#8599;</a><a href="/connect/#book">Book a call &#8599;</a><a href="/card/">Digital card &#8599;</a><a href="/card/qr/">Card QR &#8599;</a><a href="/feed.xml">RSS feed &#8599;</a>${profileLinks(site).map(([label, url]) => `<a href="${e(url)}" target="_blank" rel="noopener noreferrer">${label} &#8599;</a>`).join('')}<a href="/about/">About ${e(site.author)} &#8599;</a><span>Thanks for reading.</span></div></footer>
 <div class="statusbar"><div><button data-vim-toggle aria-pressed="true" aria-label="Toggle Vim navigation" title="Turn keyboard navigation on or off">VIM: ON</button><a class="status-file" href="${article ? notePath(article) + 'index.md' : active === 'articles' ? '/#notebook' : '#main'}" title="${article ? 'Open this article as Markdown' : active === 'articles' ? 'Go to the notebook' : 'Back to page content'}">${article ? e(article.slug) + '.md' : active + '.md'}</a></div><div class="key-hints"><span><kbd>j</kbd><kbd>k</kbd> navigate</span><button data-search><kbd>/</kbd> search</button><button data-help><kbd>?</kbd> keys</button></div><span class="status-position" data-scroll-position>TOP</span></div>
 <dialog id="command-dialog" aria-labelledby="command-title"><div class="dialog-heading"><span id="command-title">COMMAND LINE</span><button data-close aria-label="Close search">esc</button></div><div class="command-field"><span aria-hidden="true">&gt;</span><input id="command-input" type="search" autocomplete="off" spellcheck="false" placeholder="Find a note, or type :help" aria-label="Search notes and commands" aria-controls="command-results"></div><div id="command-results" class="command-results" aria-live="polite"></div><div class="dialog-footer"><span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> select <kbd>enter</kbd> open</span><span>Start with <kbd>:</kbd> for commands</span></div></dialog>
-<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><span id="help-title">A LITTLE LESS MOUSE</span><button data-close aria-label="Close keyboard help">esc</button></div><p class="help-intro">A familiar way to move around. All controls also work with a mouse or touch.</p><dl class="shortcut-list"><div><dt><kbd>h</kbd> / <kbd>l</kbd></dt><dd>Back / forward in browser history</dd></div><div><dt><kbd>j</kbd> / <kbd>k</kbd></dt><dd>Next / previous visible note</dd></div><div><dt><kbd>enter</kbd></dt><dd>Open the focused note</dd></div><div><dt><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></dt><dd>Top / bottom of page</dd></div><div><dt><kbd>/</kbd> or <kbd>Ctrl/Cmd K</kbd></dt><dd>Search the notebook</dd></div><div><dt><kbd>:</kbd></dt><dd>Open the command line</dd></div><div><dt><kbd>?</kbd> / <kbd>esc</kbd></dt><dd>Help / close a dialog</dd></div></dl><p class="help-intro">Commands: <code>:home</code>, <code>:lab</code>, <code>:about</code>, <code>:card</code>, <code>:theme green</code>, <code>:theme amber</code>, <code>:theme paper</code>, <code>:reboot</code>. Turn off Vim navigation in the bottom-left status bar to disable single-key shortcuts. Ctrl/Cmd K always opens search.</p></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><span id="help-title">A LITTLE LESS MOUSE</span><button data-close aria-label="Close keyboard help">esc</button></div><p class="help-intro">A familiar way to move around. All controls also work with a mouse or touch.</p><dl class="shortcut-list"><div><dt><kbd>h</kbd> / <kbd>l</kbd></dt><dd>Back / forward in browser history</dd></div><div><dt><kbd>j</kbd> / <kbd>k</kbd></dt><dd>Next / previous visible note</dd></div><div><dt><kbd>enter</kbd></dt><dd>Open the focused note</dd></div><div><dt><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></dt><dd>Top / bottom of page</dd></div><div><dt><kbd>/</kbd> or <kbd>Ctrl/Cmd K</kbd></dt><dd>Search the notebook</dd></div><div><dt><kbd>:</kbd></dt><dd>Open the command line</dd></div><div><dt><kbd>?</kbd> / <kbd>esc</kbd></dt><dd>Help / close a dialog</dd></div></dl><p class="help-intro">Commands: <code>:home</code>, <code>:lab</code>, <code>:about</code>, <code>:card</code>, <code>:qr</code>, <code>:theme green</code>, <code>:theme amber</code>, <code>:theme paper</code>, <code>:reboot</code>. Turn off Vim navigation in the bottom-left status bar to disable single-key shortcuts. Ctrl/Cmd K always opens search.</p></dialog>
 <div class="toast" role="status" aria-live="polite"></div>
 </body></html>`;
 }
@@ -289,6 +316,187 @@ export function renderFeed(site, notes) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${xmlText(site.name)}</title><link>${xmlText(origin || '/')}</link><description>${xmlText(site.description)}</description><language>en</language>${notes.map((note) => { const url = origin ? new URL(notePath(note), origin).href : notePath(note); return `<item><title>${xmlText(note.title)}</title><link>${xmlText(url)}</link><guid isPermaLink="${Boolean(origin)}">${xmlText(url)}</guid><description>${xmlText(note.description)}</description><pubDate>${new Date(`${note.date}T12:00:00Z`).toUTCString()}</pubDate>${[note.category, ...note.tags].map((classification) => `<category>${xmlText(classification)}</category>`).join('')}</item>`; }).join('')}</channel></rss>`;
 }
 
+function hexToRgb(hex) {
+  const value = hex.replace('#', '');
+  return [0, 2, 4].map((index) => Number.parseInt(value.slice(index, index + 2), 16));
+}
+
+function blend(left, right, amount) {
+  return left.map((channel, index) => Math.round(channel * (1 - amount) + right[index] * amount));
+}
+
+function setPixel(pixels, size, x, y, color) {
+  if (x < 0 || y < 0 || x >= size || y >= size) return;
+  const offset = (y * size + x) * 4;
+  pixels[offset] = color[0];
+  pixels[offset + 1] = color[1];
+  pixels[offset + 2] = color[2];
+  pixels[offset + 3] = 255;
+}
+
+function fillRect(pixels, size, x, y, width, height, color) {
+  const left = Math.max(0, Math.floor(x));
+  const top = Math.max(0, Math.floor(y));
+  const right = Math.min(size, Math.ceil(x + width));
+  const bottom = Math.min(size, Math.ceil(y + height));
+  for (let row = top; row < bottom; row++) {
+    for (let column = left; column < right; column++) setPixel(pixels, size, column, row, color);
+  }
+}
+
+const iconFont = Object.freeze({
+  D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
+  E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
+  F: ['11111', '10000', '10000', '11110', '10000', '10000', '10000'],
+  I: ['11111', '00100', '00100', '00100', '00100', '00100', '11111'],
+  L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
+  M: ['10001', '11011', '10101', '10101', '10001', '10001', '10001'],
+  N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
+  O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+  P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
+  S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
+  T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
+});
+
+function drawIconText(pixels, size, text, x, y, scale, color) {
+  let cursor = x;
+  for (const character of text) {
+    const glyph = iconFont[character];
+    if (!glyph) {
+      cursor += scale * 3;
+      continue;
+    }
+    glyph.forEach((row, rowIndex) => {
+      [...row].forEach((bit, columnIndex) => {
+        if (bit === '1') fillRect(pixels, size, cursor + columnIndex * scale, y + rowIndex * scale, scale, scale, color);
+      });
+    });
+    cursor += scale * 6;
+  }
+}
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data = Buffer.alloc(0)) {
+  const name = Buffer.from(type);
+  const length = Buffer.alloc(4);
+  const checksum = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  checksum.writeUInt32BE(crc32(Buffer.concat([name, data])));
+  return Buffer.concat([length, name, data, checksum]);
+}
+
+function encodePng(size, pixels) {
+  const rows = Buffer.alloc((size * 4 + 1) * size);
+  for (let row = 0; row < size; row++) {
+    const rowStart = row * (size * 4 + 1);
+    rows[rowStart] = 0;
+    pixels.copy(rows, rowStart + 1, row * size * 4, (row + 1) * size * 4);
+  }
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(size, 0);
+  header.writeUInt32BE(size, 4);
+  header[8] = 8;
+  header[9] = 6;
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk('IHDR', header),
+    pngChunk('IDAT', deflateSync(rows)),
+    pngChunk('IEND'),
+  ]);
+}
+
+function renderIconPng(size, palette) {
+  const pixels = Buffer.alloc(size * size * 4);
+  const bg = hexToRgb(palette.bg);
+  const panel = hexToRgb(palette.panel);
+  const line = hexToRgb(palette.line);
+  const accent = hexToRgb(palette.accent);
+  const dim = hexToRgb(palette.dim);
+  fillRect(pixels, size, 0, 0, size, size, bg);
+  const margin = Math.round(size * 0.08);
+  const border = Math.max(2, Math.round(size * 0.018));
+  fillRect(pixels, size, margin, margin, size - margin * 2, size - margin * 2, line);
+  fillRect(pixels, size, margin + border, margin + border, size - (margin + border) * 2, size - (margin + border) * 2, panel);
+  for (let y = margin + border; y < size - margin - border; y += Math.max(3, Math.round(size * 0.025))) {
+    fillRect(pixels, size, margin + border, y, size - (margin + border) * 2, 1, blend(panel, dim, 0.65));
+  }
+  const markScale = Math.max(8, Math.floor(size / 13));
+  const markWidth = markScale * 11;
+  drawIconText(pixels, size, 'PM', Math.round((size - markWidth) / 2), Math.round(size * 0.29), markScale, accent);
+  const cursorWidth = markScale * 3;
+  fillRect(pixels, size, Math.round((size - cursorWidth) / 2), Math.round(size * 0.78), cursorWidth, Math.max(2, Math.round(size * 0.018)), accent);
+  return encodePng(size, pixels);
+}
+
+function renderIconSvg(theme, palette) {
+  const accent = e(palette.accent);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FIELDNOTES ${e(theme)} CRT icon"><rect width="512" height="512" fill="${e(palette.bg)}"/><rect x="40" y="40" width="432" height="432" fill="${e(palette.line)}"/><rect x="49" y="49" width="414" height="414" fill="${e(palette.panel)}"/><path d="M49 86h414M49 124h414M49 162h414M49 200h414M49 238h414M49 276h414M49 314h414M49 352h414M49 390h414M49 428h414" stroke="${e(palette.dim)}" stroke-width="2"/><text x="256" y="299" text-anchor="middle" fill="${accent}" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="158" font-weight="700" letter-spacing="-18">PM</text><rect x="206" y="400" width="100" height="10" fill="${accent}"/></svg>`;
+}
+
+function manifestIcons() {
+  return Object.keys(iconThemes).flatMap((theme) => iconSizes.map((size) => ({
+    src: `/assets/icons/fieldnotes-${theme}-${size}.png`,
+    sizes: `${size}x${size}`,
+    type: 'image/png',
+    purpose: 'any',
+  })));
+}
+
+function renderManifest(site, { name, shortName, startUrl, description, theme = 'green' }) {
+  const palette = iconThemes[theme];
+  const shortcuts = startUrl === '/' ? [{
+    name: 'Patrick Mannion card',
+    short_name: 'Card',
+    url: '/card/',
+    icons: [{ src: '/assets/icons/fieldnotes-green-192.png', sizes: '192x192', type: 'image/png' }],
+  }] : [];
+  return `${JSON.stringify({
+    name,
+    short_name: shortName,
+    description,
+    start_url: startUrl,
+    scope: '/',
+    display: 'standalone',
+    background_color: palette.bg,
+    theme_color: palette.bg,
+    icons: manifestIcons(),
+    shortcuts,
+    categories: ['productivity', 'business'],
+    lang: 'en',
+  }, null, 2)}\n`;
+}
+
+async function writeAppIconAssets(destination, site) {
+  const iconDir = join(destination, 'assets', 'icons');
+  await mkdir(iconDir, { recursive: true });
+  for (const [theme, palette] of Object.entries(iconThemes)) {
+    await writeFile(join(iconDir, `fieldnotes-${theme}.svg`), renderIconSvg(theme, palette));
+    for (const size of iconSizes) {
+      await writeFile(join(iconDir, `fieldnotes-${theme}-${size}.png`), renderIconPng(size, palette));
+    }
+  }
+  await writeFile(join(destination, 'site.webmanifest'), renderManifest(site, {
+    name: `${site.name} - Patrick Mannion`,
+    shortName: site.name,
+    startUrl: '/',
+    description: site.description,
+  }));
+  await writeFile(join(destination, 'card.webmanifest'), renderManifest(site, {
+    name: 'Patrick Mannion contact card',
+    shortName: 'Patrick Card',
+    startUrl: '/card/',
+    description: 'Patrick Mannion digital contact card.',
+  }));
+}
+
 function flattenHeadings(headings) {
   return headings.flatMap((heading) => [heading.text, ...flattenHeadings(heading.children ?? [])]);
 }
@@ -332,8 +540,9 @@ function isStrictDescendant(parent, candidate) {
 const generatedPublicFiles = new Set([
   '404.html', 'feed.xml', 'index.html', 'robots.txt', 'sitemap.xml',
   'assets/data.json', 'assets/fieldnotes-renderer-browser.js', 'assets/katex.min.css',
+  'card.webmanifest', 'site.webmanifest',
 ]);
-const generatedPublicDirectories = ['about', 'card', 'connect', 'lab', 'notes', 'tags', 'assets/fonts'];
+const generatedPublicDirectories = ['about', 'card', 'connect', 'lab', 'notes', 'tags', 'assets/fonts', 'assets/icons'];
 
 function isGeneratedPublicPath(path) {
   const normalized = path.split(sep).join('/').toLowerCase();
@@ -423,6 +632,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   await writeFile(join(assets, 'katex.min.css'), katex.css);
   await mkdir(join(assets, 'fonts'), { recursive: true });
   for (const [name, bytes] of katex.fonts) await writeFile(join(assets, 'fonts', name), bytes);
+  await writeAppIconAssets(destination, site);
   const searchData = JSON.stringify({ site, articles: articles.map(searchArticle), externalPosts: links, ignitionTools: site.ignitionTools });
   const codeFiles = (await readdir(assets)).filter(name => /\.(js|css)$/.test(name)).sort();
   const hash = createHash('sha256');
@@ -437,7 +647,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
       .replace(/((?:from\s*|import\s*)['"])(\.\/[^'"]+\.js)(['"])/g, `$1$2?v=${version}$3`)
       .replaceAll('__FIELDNOTES_BUILD_VERSION__', version));
   }
-  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['card/index.html', cardPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.directorySlug}/index.html`, tagPage(site, archive)])];
+  const pages = [['index.html', home(site, articles, links)], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['card/index.html', cardPage(site)], ['card/qr/index.html', await cardQrPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.directorySlug}/index.html`, tagPage(site, archive)])];
   for (const [path, html] of pages) {
     await mkdir(resolve(destination, path, '..'), { recursive: true });
     await writeFile(join(destination, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`));
@@ -454,7 +664,7 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   await writeFile(join(assets, 'data.json'), searchData);
   await writeFile(join(destination, 'feed.xml'), renderFeed(site, articles));
   await writeFile(join(destination, 'robots.txt'), `User-agent: *\nAllow: /\n${site.siteUrl ? `Sitemap: ${site.siteUrl}sitemap.xml\n` : ''}`);
-  if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', '/card/', ...articles.map(notePath), ...archives.map((archive) => `/tags/${archive.slug}/`)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
+  if (site.siteUrl) await writeFile(join(destination, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['/', '/lab/', '/about/', '/connect/', '/card/', '/card/qr/', ...articles.map(notePath), ...archives.map((archive) => `/tags/${archive.slug}/`)].map((path) => `<url><loc>${e(new URL(path, site.siteUrl).href)}</loc></url>`).join('')}</urlset>`);
   return { pageCount: pages.length, noteCount: articles.length };
 }
 

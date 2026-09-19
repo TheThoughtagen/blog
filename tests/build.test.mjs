@@ -542,6 +542,9 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   const about = await readFile(join(outputDir, 'about/index.html'), 'utf8');
   const connect = await readFile(join(outputDir, 'connect/index.html'), 'utf8');
   const card = await readFile(join(outputDir, 'card/index.html'), 'utf8');
+  const cardQr = await readFile(join(outputDir, 'card/qr/index.html'), 'utf8');
+  const siteManifest = JSON.parse(await readFile(join(outputDir, 'site.webmanifest'), 'utf8'));
+  const cardManifest = JSON.parse(await readFile(join(outputDir, 'card.webmanifest'), 'utf8'));
   const vcard = await readFile(join(outputDir, 'patrick-mannion.vcf'), 'utf8');
   const feed = await readFile(join(outputDir, 'feed.xml'), 'utf8');
   const sitemap = await readFile(join(outputDir, 'sitemap.xml'), 'utf8');
@@ -555,10 +558,12 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.doesNotMatch(feed, /<item>/);
   assert.match(feed, /<rss version="2\.0"><channel>/);
   assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/card\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/card\/qr\/<\/loc>/);
   assert.match(lab, /Ignition tools/);
   assert.match(about, /About Patrick/);
   assert.match(connect, /Say hello/);
   assert.match(card, /GitHub @TheThoughtagen/);
+  assert.match(card, /href="\/card\.webmanifest"/);
   assert.match(card, /data-card-hook/);
   assert.match(card, /src="\/assets\/patrick-mannion-headshot\.png"/);
   assert.match(card, /data-card-repos/);
@@ -568,6 +573,22 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(card, /ignition-ide-plugins[\s\S]*14 stars/);
   assert.match(card, /ignition-lint[\s\S]*11 stars/);
   assert.match(card, /patrick@cruciblesoftware\.co/);
+  assert.match(cardQr, /Scan to save contact/);
+  assert.match(cardQr, /https:\/\/thoughts\.cruciblesoftware\.co\/card\//);
+  assert.match(cardQr, /class="card-qr-code"/);
+  assert.match(cardQr, /class="card-qr-light"/);
+  assert.match(cardQr, /class="card-qr-dark"/);
+  assert.match(cardQr, /href="\/card\/"/);
+  assert.match(cardQr, /href="\/card\.webmanifest"/);
+  assert.match(cardQr, /:qr/);
+  assert.equal(siteManifest.start_url, '/');
+  assert.equal(cardManifest.start_url, '/card/');
+  assert.ok(cardManifest.icons.some((icon) => icon.src === '/assets/icons/fieldnotes-green-512.png'));
+  assert.ok(cardManifest.icons.some((icon) => icon.src === '/assets/icons/fieldnotes-amber-180.png'));
+  for (const theme of ['green', 'amber']) {
+    for (const size of [180, 192, 512]) await access(join(outputDir, 'assets/icons', `fieldnotes-${theme}-${size}.png`));
+    await access(join(outputDir, 'assets/icons', `fieldnotes-${theme}.svg`));
+  }
   assert.match(vcard, /FN:Patrick Mannion/);
   assert.match(vcard, /PHOTO;MEDIATYPE=image\/png:https:\/\/thoughts\.cruciblesoftware\.co\/assets\/patrick-mannion-headshot\.png/);
 });
