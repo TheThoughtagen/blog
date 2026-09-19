@@ -557,11 +557,13 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(connect, /Say hello/);
   assert.match(card, /GitHub @TheThoughtagen/);
   assert.match(card, /data-card-hook/);
+  assert.match(card, /src="\/assets\/patrick-mannion-headshot\.png"/);
   assert.match(card, /data-card-repos/);
   assert.match(card, /ignition-ide-plugins[\s\S]*14 stars/);
   assert.match(card, /ignition-lint[\s\S]*11 stars/);
   assert.match(card, /patrick@cruciblesoftware\.co/);
   assert.match(vcard, /FN:Patrick Mannion/);
+  assert.match(vcard, /PHOTO;MEDIATYPE=image\/png:https:\/\/thoughts\.cruciblesoftware\.co\/assets\/patrick-mannion-headshot\.png/);
 });
 
 test('a Markdown note without H2 or H3 headings omits the on-page navigation', async () => {

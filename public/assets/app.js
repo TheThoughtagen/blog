@@ -100,7 +100,11 @@ function initCardHook() {
   if (!hook || !window.fieldnotesArtwork) return;
   const video = hook.querySelector('[data-card-hook-video]');
   const status = hook.querySelector('[data-card-hook-status]');
-  if (!video) return;
+  if (!video) {
+    hook.classList.add('is-playing');
+    if (status) status.textContent = reducedMotion.matches ? 'CRT headshot ready.' : 'CRT headshot online.';
+    return;
+  }
   const still = (message = 'Terminal portrait ready.') => {
     video.pause();
     hook.classList.remove('is-playing');

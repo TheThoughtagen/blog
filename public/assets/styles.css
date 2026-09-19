@@ -687,12 +687,10 @@
   .card-primary-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
   .card-github-cta { min-width: min(100%, 275px); justify-content: space-between; }
   .card-portrait { min-width: 0; }
-  .card-portrait .welcome-media { position: relative; aspect-ratio: 1024 / 572; border: 1px solid var(--line); background: var(--terminal); overflow: hidden; }
-  .card-portrait .mascot { height: 100%; display: flex; align-items: center; }
-  .card-portrait .mascot img { width: 100%; height: 100%; object-fit: cover; }
-  .card-portrait video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; visibility: hidden; }
-  .card-portrait.is-playing video { visibility: visible; }
-  .card-portrait.is-playing .mascot { opacity: 0; }
+  .card-photo-frame { position: relative; aspect-ratio: 4 / 3; border: 1px solid var(--line); background: var(--terminal); overflow: hidden; box-shadow: inset 0 0 0 1px var(--faint), 0 0 34px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .card-photo-frame::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: linear-gradient(transparent 50%, color-mix(in srgb, var(--terminal) 52%, transparent) 50%), radial-gradient(circle at 50% 42%, transparent 0 48%, color-mix(in srgb, var(--terminal) 38%, transparent)); background-size: 100% 4px, 100% 100%; mix-blend-mode: multiply; opacity: .38; }
+  .card-photo-frame::after { content: ''; position: absolute; inset: auto -20% 18% -20%; height: 22%; pointer-events: none; z-index: 2; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 42%, transparent), transparent); filter: blur(14px); opacity: .55; animation: card-hook-glow 4s ease-in-out infinite; }
+  .card-headshot { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 34%; filter: saturate(.86) contrast(1.04) brightness(.88); }
   .card-portrait::after { content: ''; display: block; height: 4px; margin-top: 7px; background: linear-gradient(90deg, var(--accent), transparent); animation: card-scan 2.8s linear infinite; }
   .card-hook-caption { display: flex; align-items: center; gap: 9px; margin-top: 9px; color: var(--subtle); font: 9px var(--mono); }
   .card-hook-caption .signal-dot { width: 5px; height: 5px; }
@@ -726,6 +724,10 @@
     45% { opacity: 1; }
     to { transform: translateX(55%); opacity: .25; }
   }
+  @keyframes card-hook-glow {
+    0%, 100% { transform: translateX(-28%); opacity: .28; }
+    50% { transform: translateX(28%); opacity: .64; }
+  }
 }
 
 @layer responsive {
@@ -750,6 +752,6 @@
     .card-repo:hover { transform: none; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .card-portrait::after { animation: none; }
+    .card-portrait::after, .card-photo-frame::after { animation: none; }
   }
 }
