@@ -547,6 +547,9 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   const sitemap = await readFile(join(outputDir, 'sitemap.xml'), 'utf8');
   const data = JSON.parse(await readFile(join(outputDir, 'assets/data.json'), 'utf8'));
   assert.match(home, /no published field notes yet/i);
+  assert.match(home, /class="author-portrait card-portrait"/);
+  assert.match(home, /<img class="card-headshot" src="\/assets\/patrick-mannion-headshot\.png"/);
+  assert.match(about, /class="about-portrait card-portrait"/);
   assert.deepEqual(data.articles, []);
   assert.doesNotMatch(sitemap, /\/notes\//);
   assert.doesNotMatch(feed, /<item>/);

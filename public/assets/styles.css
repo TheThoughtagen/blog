@@ -321,6 +321,7 @@
   .github-event:hover > span { text-decoration: underline; }
   .about-mark { color: var(--subtle); font-family: var(--mono); font-size: 77px; letter-spacing: -.12em; text-align: center; }
   .about-mark > span { color: var(--accent); }
+  .about-portrait { min-width: 0; }
   .about-grid { display: grid; grid-template-columns: minmax(0, 650px) 300px; gap: 85px; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 40px; }
   .about-grid h2 { font-size: 32px; margin-bottom: 23px; }
   .about-grid p { font-size: 16px; line-height: 1.85; margin-bottom: 20px; }
@@ -569,6 +570,7 @@
     .secondary-header h1 { font-size: 48px; }
     .secondary-header p { font-size: 14px; }
     .lab-glyph, .about-mark { display: none; }
+    .about-portrait { max-width: 430px; }
     .lab-status { font-size: 8px; flex-wrap: wrap; }
     .lab-status > span:last-child { margin-left: 16px; flex-basis: 100%; font-size: 7px; }
     .ignition-tools { margin: 38px 0 45px; }
@@ -630,6 +632,9 @@
 
 @layer components {
   .author-card { display: flex; align-items: flex-start; gap: 24px; margin: 0 0 38px; padding: 28px; border: 1px solid var(--line); background: var(--panel); }
+  .author-portrait { display: block; flex: 0 0 138px; max-width: 38%; color: inherit; }
+  .author-portrait:hover .card-photo-frame { border-color: var(--accent); filter: brightness(1.06); }
+  .author-card-copy { min-width: 0; }
   .author-monogram { display: flex; align-items: center; justify-content: center; flex: 0 0 64px; min-height: 64px; border: 1px solid var(--line); color: var(--accent); font: 22px var(--mono); }
   .author-monogram span { color: var(--muted); }
   .author-card h2 { margin: 8px 0 10px; font-size: 28px; }
@@ -646,6 +651,7 @@
 @layer responsive {
   @media (max-width: 600px) {
     .author-card { gap: 16px; padding: 20px; }
+    .author-portrait { flex-basis: 92px; max-width: 34%; }
     .author-monogram { flex-basis: 42px; min-height: 44px; font-size: 17px; }
     .author-card h2 { font-size: 25px; }
     .author-card .overline { font-size: 8px; }
