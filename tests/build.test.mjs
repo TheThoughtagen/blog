@@ -563,6 +563,7 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(about, /About Patrick/);
   assert.match(connect, /Say hello/);
   assert.match(card, /GitHub @TheThoughtagen/);
+  assert.ok(card.indexOf('Download vCard') < card.indexOf('GitHub @TheThoughtagen'), 'vCard download is the first primary card CTA');
   assert.match(card, /href="\/card\.webmanifest"/);
   assert.match(card, /data-card-hook/);
   assert.match(card, /src="\/assets\/patrick-mannion-headshot\.png"/);
