@@ -738,7 +738,7 @@
   .card-qr-frame { width: min(86vw, 70dvh, 720px); max-width: 100%; padding: clamp(8px, 2.2vw, 18px); background: var(--qr-bg); border: clamp(4px, 1vw, 9px) solid var(--qr-ink); box-shadow: 0 0 0 1px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 22%, transparent); }
   .card-qr-code { display: block; width: 100%; height: auto; background: var(--qr-bg); }
   .card-qr-light { fill: var(--qr-bg); }
-  .card-qr-dark { fill: var(--qr-ink); }
+  .card-qr-dark { fill: var(--qr-ink); stroke: var(--qr-ink); }
   .card-qr-target { max-width: min(86vw, 720px); margin-top: 16px; color: var(--terminal-ink); font: clamp(9px, 2.3vw, 12px)/1.7 var(--mono); text-align: center; overflow-wrap: anywhere; }
   @keyframes card-scan {
     from { transform: translateX(-55%); opacity: .25; }
