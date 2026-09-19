@@ -555,7 +555,12 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(lab, /Ignition tools/);
   assert.match(about, /About Patrick/);
   assert.match(connect, /Say hello/);
-  assert.match(card, /Patrick Mannion contact card|patrick@cruciblesoftware\.co/);
+  assert.match(card, /GitHub @TheThoughtagen/);
+  assert.match(card, /data-card-hook/);
+  assert.match(card, /data-card-repos/);
+  assert.match(card, /ignition-ide-plugins[\s\S]*14 stars/);
+  assert.match(card, /ignition-lint[\s\S]*11 stars/);
+  assert.match(card, /patrick@cruciblesoftware\.co/);
   assert.match(vcard, /FN:Patrick Mannion/);
 });
 

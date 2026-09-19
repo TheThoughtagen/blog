@@ -14,6 +14,43 @@ const contact = Object.freeze({
   companyUrl: 'https://cruciblesoftware.co/',
   vcardPath: '/patrick-mannion.vcf',
 });
+const featuredGithubRepos = Object.freeze([
+  {
+    name: 'ignition-ide-plugins',
+    url: 'https://github.com/TheThoughtagen/ignition-ide-plugins',
+    description: 'Neovim Terminal IDE Lazy-Vim plugin for Ignition by Inductive Automation',
+    stars: 14,
+    language: 'Python',
+  },
+  {
+    name: 'ignition-lint',
+    url: 'https://github.com/TheThoughtagen/ignition-lint',
+    description: "Ignition Linter for Jython Scripting, Perspective JSON's and more!",
+    stars: 11,
+    language: 'Python',
+  },
+  {
+    name: 'ignition-cli',
+    url: 'https://github.com/TheThoughtagen/ignition-cli',
+    description: 'Rust CLI for Ignition v8.3+ by Inductive Automation',
+    stars: 1,
+    language: 'Rust',
+  },
+  {
+    name: 'agentic-ignition-tooling',
+    url: 'https://github.com/TheThoughtagen/agentic-ignition-tooling',
+    description: 'Agentic Ignition tooling for API references, auto-linting, test scaffolding, Jython gateway tests, and Playwright E2E',
+    stars: 1,
+    language: 'Shell',
+  },
+  {
+    name: 'fieldnotes-editor',
+    url: 'https://github.com/TheThoughtagen/fieldnotes-editor',
+    description: 'A native macOS Markdown editor with rendered and Vim editing modes',
+    stars: 0,
+    language: 'Swift',
+  },
+]);
 export const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const e = escapeHtml;
 const notePath = (article) => `/notes/${article.slug}/`;
@@ -91,17 +128,31 @@ function connectPage(site) {
   return shell(site, { title: 'Connect', path: '/connect/', active: 'connect', body: `<div class="wrap secondary-page"><div class="overline">04 / HUMAN CONNECTIONS</div><header class="secondary-header"><div><h1>Say hello.<br><span class="accent">I’m Patrick.</span></h1><p>Working on a similar problem? Send me the note you’re responding to, a little context, and what you’re trying to figure out.</p></div><div class="lab-glyph" aria-hidden="true">[ <span>hello_</span> ]<small>THERE IS A HUMAN ON THIS END.</small></div></header><div class="connect-profiles">${connectionLinks(site)}</div>${renderChannels(site)}<p class="connection-privacy">Booking is handled by the connected calendar provider. Email signup is handled by the connected newsletter provider. This site does not store your email address or calendar details.</p></div>` });
 }
 
+function githubProfile(site) {
+  return site.github.username ? `https://github.com/${site.github.username}` : 'https://github.com/TheThoughtagen';
+}
+
+function starLabel(stars) {
+  return `${stars} ${stars === 1 ? 'star' : 'stars'}`;
+}
+
+function cardRepoHighlights(site) {
+  return `<section class="card-repos" aria-labelledby="card-repos-title" data-card-repos data-owner="${e(site.github.username || 'TheThoughtagen')}"><div class="card-section-heading"><div><div class="overline">PUBLIC WORK / GITHUB</div><h2 id="card-repos-title">Repos worth opening.</h2></div><p data-card-repos-status>Static public snapshot. The page refreshes from GitHub when the public API is available.</p></div><div class="card-repo-grid">${featuredGithubRepos.map((repo) => `<a class="card-repo" href="${e(repo.url)}" target="_blank" rel="noopener noreferrer" data-repo-name="${e(repo.name)}"><span class="card-repo-top"><strong>${e(repo.name)}</strong><span data-repo-stars>${e(starLabel(repo.stars))}</span></span><p data-repo-description>${e(repo.description)}</p><span class="card-repo-meta"><span data-repo-language>${e(repo.language)}</span><span>GitHub &#8599;</span></span></a>`).join('')}</div></section>`;
+}
+
 function cardPage(site) {
+  const github = githubProfile(site);
   const links = [
     ['Email', `mailto:${contact.email}`, contact.email],
     ['LinkedIn', site.links.linkedin, 'linkedin.com/in/mannionpatrick'],
     ['Blog home', '/', site.siteUrl ? new URL('/', site.siteUrl).hostname : 'thoughts.cruciblesoftware.co'],
     ['Company', contact.companyUrl, 'cruciblesoftware.co'],
   ];
-  const body = `<div class="wrap secondary-page contact-card-page"><div class="overline">05 / DIGITAL CONTACT</div><header class="secondary-header"><div><h1>Patrick Mannion<span class="accent">.</span></h1><p>A small contact card for conversations about industrial software, Ignition systems, production data, and the work of making systems easier to diagnose.</p></div><div class="about-mark" aria-hidden="true">[<span>pm_</span>]<small>KEEP THIS HANDY</small></div></header><div class="card-shell"><section class="contact-card-panel" aria-labelledby="contact-card-title"><div class="card-panel-top"><a class="author-monogram" href="/about/" aria-label="About ${e(site.author)}">PM<span aria-hidden="true">_</span></a><div><div class="overline">FIELDNOTES CONTACT</div><h2 id="contact-card-title">${e(site.author)}</h2><p>${e(site.bio?.short || site.description)}</p></div></div><div class="card-link-stack">${links.map(([label, url, detail]) => `<a class="connection" href="${e(url)}"${url.startsWith('http') ? ' target="_blank" rel="noopener noreferrer"' : ''}><span>${e(label)}</span><span>${e(detail)}</span></a>`).join('')}</div><div class="card-actions"><a class="button primary" href="mailto:${e(contact.email)}">Email Patrick <span>&#8594;</span></a><a class="button" href="${e(contact.vcardPath)}" download>Download vCard <span>&#8595;</span></a></div></section><aside class="card-terminal" aria-label="Contact details"><div class="overline">OPEN CHANNELS</div><pre>patrick@cruciblesoftware.co
+  const body = `<div class="wrap secondary-page contact-card-page"><div class="overline">05 / DIGITAL CONTACT</div><header class="secondary-header card-header"><div><h1>Patrick Mannion<span class="accent">.</span></h1><p>A small contact card for conversations about industrial software, Ignition systems, production data, and the work of making systems easier to diagnose.</p><div class="card-primary-actions"><a class="button primary card-github-cta" href="${e(github)}" target="_blank" rel="noopener noreferrer">GitHub @${e(site.github.username || 'TheThoughtagen')} <span>&#8599;</span></a><a class="button" href="mailto:${e(contact.email)}">Email Patrick <span>&#8594;</span></a></div></div><section class="card-portrait" data-card-hook aria-label="Patrick terminal portrait"><div class="welcome-media">${renderMascot()}<video data-card-hook-video muted playsinline loop preload="none" aria-label="Patrick walks to a terminal and gives a thumbs-up."></video></div><div class="card-hook-caption"><span class="signal-dot"></span><span data-card-hook-status>Terminal portrait ready.</span></div></section></header><div class="card-shell"><section class="contact-card-panel" aria-labelledby="contact-card-title"><div class="card-panel-top"><a class="author-monogram" href="/about/" aria-label="About ${e(site.author)}">PM<span aria-hidden="true">_</span></a><div><div class="overline">FIELDNOTES CONTACT</div><h2 id="contact-card-title">${e(site.author)}</h2><p>${e(site.bio?.short || site.description)}</p></div></div><div class="card-link-stack"><a class="connection card-feature-link" href="${e(github)}" target="_blank" rel="noopener noreferrer"><span>GitHub</span><span>github.com/${e(site.github.username || 'TheThoughtagen')}</span></a>${links.map(([label, url, detail]) => `<a class="connection" href="${e(url)}"${url.startsWith('http') ? ' target="_blank" rel="noopener noreferrer"' : ''}><span>${e(label)}</span><span>${e(detail)}</span></a>`).join('')}</div><div class="card-actions"><a class="button" href="${e(contact.vcardPath)}" download>Download vCard <span>&#8595;</span></a></div></section><aside class="card-terminal" aria-label="Contact details"><div class="overline">OPEN CHANNELS</div><pre>github.com/${e(site.github.username || 'TheThoughtagen')}
+ patrick@cruciblesoftware.co
  linkedin.com/in/mannionpatrick
  thoughts.cruciblesoftware.co
- cruciblesoftware.co</pre><p>If we met at ICC, send the specific problem or note you want to compare. Details beat pitches.</p></aside></div></div>`;
+ cruciblesoftware.co</pre><p>If we met at ICC, send the specific problem or note you want to compare. Details beat pitches.</p></aside></div>${cardRepoHighlights(site)}</div>`;
   return shell(site, { title: 'Patrick Mannion contact card', description: 'Patrick Mannion digital contact card for FIELDNOTES and Crucible Software.', path: '/card/', active: 'card', body });
 }
 

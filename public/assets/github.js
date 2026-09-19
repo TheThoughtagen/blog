@@ -45,6 +45,26 @@ export function parseReleases(releases, repo) {
   return releases.filter((release) => release && !release.draft && release.published_at && Number.isFinite(Date.parse(release.published_at)) && githubUrl(release.html_url)).map((release) => ({ repo, title: release.name || release.tag_name || 'Release', url: githubUrl(release.html_url), date: release.published_at }));
 }
 
+export function parseCardRepositories(repositories, wantedNames, limit = 5) {
+  if (!Array.isArray(repositories) || !Array.isArray(wantedNames)) return [];
+  const wanted = new Set(wantedNames.filter(name => typeof name === 'string' && /^[\w.-]+$/u.test(name)));
+  const byName = new Map();
+  for (const repository of repositories) {
+    if (!repository || typeof repository !== 'object' || repository.fork || repository.archived) continue;
+    const name = repository.name;
+    const url = githubUrl(repository.html_url);
+    if (!wanted.has(name) || !url) continue;
+    byName.set(name, {
+      name,
+      url,
+      description: typeof repository.description === 'string' ? repository.description : '',
+      stars: Number.isInteger(repository.stargazers_count) && repository.stargazers_count >= 0 ? repository.stargazers_count : 0,
+      language: typeof repository.language === 'string' && repository.language ? repository.language : 'Repository',
+    });
+  }
+  return wantedNames.flatMap(name => byName.get(name) ?? []).slice(0, limit);
+}
+
 export async function requestGithub(path, fetcher = fetch) {
   const response = await fetcher(`https://api.github.com/${path}`, { headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, signal: AbortSignal.timeout(8000), credentials: 'omit' });
   if (!response.ok) {

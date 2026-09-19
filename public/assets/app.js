@@ -1,5 +1,5 @@
 import { hydrateMermaid, normalizeRenderedDom } from './fieldnotes-renderer-browser.js';
-import { connectGithub } from './github.js';
+import { connectGithub, parseCardRepositories, requestGithub } from './github.js';
 import './code-dust.js';
 import './social.js';
 
@@ -94,6 +94,75 @@ function loadData() {
   }).then((result) => { data = result; dataError = false; connectGithub(result.site.github); return result; }).catch(() => { dataError = true; return null; });
 }
 loadData();
+
+function initCardHook() {
+  const hook = $('[data-card-hook]');
+  if (!hook || !window.fieldnotesArtwork) return;
+  const video = hook.querySelector('[data-card-hook-video]');
+  const status = hook.querySelector('[data-card-hook-status]');
+  if (!video) return;
+  const still = (message = 'Terminal portrait ready.') => {
+    video.pause();
+    hook.classList.remove('is-playing');
+    if (status) status.textContent = message;
+  };
+  const play = async () => {
+    if (paused || reducedMotion.matches) {
+      still(reducedMotion.matches ? 'Still frame: reduced motion.' : 'Still frame: motion paused.');
+      return;
+    }
+    try {
+      const { video: source } = window.fieldnotesArtwork();
+      if (!video.getAttribute('src') || video.getAttribute('src') !== source) video.src = source;
+      await video.play();
+      hook.classList.add('is-playing');
+      if (status) status.textContent = 'Welcome loop online.';
+    } catch {
+      still('Still frame fallback.');
+    }
+  };
+  document.addEventListener('fieldnotes:theme-change', play);
+  reducedMotion.addEventListener('change', play);
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) play();
+      else still();
+    }, { threshold: 0.35 });
+    observer.observe(hook);
+  } else play();
+}
+
+async function hydrateCardRepositories() {
+  const container = $('[data-card-repos]');
+  if (!container) return;
+  const owner = container.dataset.owner;
+  const cards = $$('.card-repo[data-repo-name]');
+  const wanted = cards.map(card => card.dataset.repoName).filter(Boolean);
+  const status = $('[data-card-repos-status]');
+  if (!owner || !wanted.length) return;
+  try {
+    const repositories = parseCardRepositories(
+      await requestGithub(`users/${encodeURIComponent(owner)}/repos?per_page=100&type=owner&sort=updated`),
+      wanted,
+      wanted.length,
+    );
+    if (!repositories.length) throw new Error('No matching public repositories found.');
+    const byName = new Map(repositories.map(repository => [repository.name, repository]));
+    for (const card of cards) {
+      const repository = byName.get(card.dataset.repoName);
+      if (!repository) continue;
+      card.href = repository.url;
+      card.querySelector('[data-repo-stars]').textContent = `${repository.stars} ${repository.stars === 1 ? 'star' : 'stars'}`;
+      card.querySelector('[data-repo-description]').textContent = repository.description || 'Public GitHub repository.';
+      card.querySelector('[data-repo-language]').textContent = repository.language;
+    }
+    if (status) status.textContent = 'Live public GitHub data loaded.';
+  } catch {
+    if (status) status.textContent = 'Static repo snapshot shown; GitHub API unavailable.';
+  }
+}
+initCardHook();
+hydrateCardRepositories();
 
 const commandDialog = $('#command-dialog');
 const helpDialog = $('#help-dialog');
