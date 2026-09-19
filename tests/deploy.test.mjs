@@ -91,6 +91,14 @@ test('deployment manifest accepts downloadable vCards', async t => {
   assert.equal(files.find(file => file.path === 'patrick-mannion.vcf')?.contentType, 'text/vcard; charset=utf-8');
 });
 
+test('deployment manifest accepts web app manifests', async t => {
+  const directory = await fixture(t);
+  await writeFile(join(directory, 'card.webmanifest'), JSON.stringify({ name: 'Contact card', start_url: '/card/' }));
+
+  const files = await collectFiles(directory);
+  assert.equal(files.find(file => file.path === 'card.webmanifest')?.contentType, 'application/manifest+json');
+});
+
 test('deployment manifest accepts PNG images', async t => {
   const directory = await fixture(t);
   await writeFile(join(directory, 'headshot.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
