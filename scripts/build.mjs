@@ -17,7 +17,16 @@ const contact = Object.freeze({
 });
 const featuredGithubRepos = Object.freeze([
   {
+    name: 'ignition-mcp',
+    fullName: 'WhiskeyHouse/ignition-mcp',
+    url: 'https://github.com/WhiskeyHouse/ignition-mcp',
+    description: 'Ignition (8.3 and above) MCP server work with the new REST API',
+    stars: 36,
+    language: 'Python',
+  },
+  {
     name: 'ignition-ide-plugins',
+    fullName: 'TheThoughtagen/ignition-ide-plugins',
     url: 'https://github.com/TheThoughtagen/ignition-ide-plugins',
     description: 'Neovim Terminal IDE Lazy-Vim plugin for Ignition by Inductive Automation',
     stars: 14,
@@ -25,6 +34,7 @@ const featuredGithubRepos = Object.freeze([
   },
   {
     name: 'ignition-lint',
+    fullName: 'TheThoughtagen/ignition-lint',
     url: 'https://github.com/TheThoughtagen/ignition-lint',
     description: "Ignition Linter for Jython Scripting, Perspective JSON's and more!",
     stars: 11,
@@ -32,6 +42,7 @@ const featuredGithubRepos = Object.freeze([
   },
   {
     name: 'ignition-cli',
+    fullName: 'TheThoughtagen/ignition-cli',
     url: 'https://github.com/TheThoughtagen/ignition-cli',
     description: 'Rust CLI for Ignition v8.3+ by Inductive Automation',
     stars: 1,
@@ -39,17 +50,11 @@ const featuredGithubRepos = Object.freeze([
   },
   {
     name: 'agentic-ignition-tooling',
+    fullName: 'TheThoughtagen/agentic-ignition-tooling',
     url: 'https://github.com/TheThoughtagen/agentic-ignition-tooling',
     description: 'Agentic Ignition tooling for API references, auto-linting, test scaffolding, Jython gateway tests, and Playwright E2E',
     stars: 1,
     language: 'Shell',
-  },
-  {
-    name: 'fieldnotes-editor',
-    url: 'https://github.com/TheThoughtagen/fieldnotes-editor',
-    description: 'A native macOS Markdown editor with rendered and Vim editing modes',
-    stars: 0,
-    language: 'Swift',
   },
 ]);
 export const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -138,7 +143,7 @@ function starLabel(stars) {
 }
 
 function cardRepoHighlights(site) {
-  return `<section class="card-repos" aria-labelledby="card-repos-title" data-card-repos data-owner="${e(site.github.username || 'TheThoughtagen')}"><div class="card-section-heading"><div><div class="overline">PUBLIC WORK / GITHUB</div><h2 id="card-repos-title">Repos worth opening.</h2></div><p data-card-repos-status>Static public snapshot. The page refreshes from GitHub when the public API is available.</p></div><div class="card-repo-grid">${featuredGithubRepos.map((repo) => `<a class="card-repo" href="${e(repo.url)}" target="_blank" rel="noopener noreferrer" data-repo-name="${e(repo.name)}"><span class="card-repo-top"><strong>${e(repo.name)}</strong><span data-repo-stars>${e(starLabel(repo.stars))}</span></span><p data-repo-description>${e(repo.description)}</p><span class="card-repo-meta"><span data-repo-language>${e(repo.language)}</span><span>GitHub &#8599;</span></span></a>`).join('')}</div></section>`;
+  return `<section class="card-repos" aria-labelledby="card-repos-title" data-card-repos><div class="card-section-heading"><div><div class="overline">PUBLIC WORK / GITHUB</div><h2 id="card-repos-title">Repos worth opening.</h2></div><p data-card-repos-status>Static public snapshot. The page refreshes from GitHub when the public API is available.</p></div><div class="card-repo-grid">${featuredGithubRepos.map((repo) => `<a class="card-repo" href="${e(repo.url)}" target="_blank" rel="noopener noreferrer" data-repo-name="${e(repo.name)}" data-repo-full-name="${e(repo.fullName)}"><span class="card-repo-top"><strong>${e(repo.name)}</strong><span data-repo-stars>${e(starLabel(repo.stars))}</span></span><p data-repo-description>${e(repo.description)}</p><span class="card-repo-meta"><span data-repo-language>${e(repo.language)}</span><span>GitHub &#8599;</span></span></a>`).join('')}</div></section>`;
 }
 
 function cardPage(site) {

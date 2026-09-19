@@ -559,6 +559,9 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(card, /data-card-hook/);
   assert.match(card, /src="\/assets\/patrick-mannion-headshot\.png"/);
   assert.match(card, /data-card-repos/);
+  assert.match(card, /ignition-mcp[\s\S]*36 stars/);
+  assert.ok(card.indexOf('ignition-mcp') < card.indexOf('ignition-ide-plugins'), 'ignition-mcp is the first highlighted repo');
+  assert.match(card, /href="https:\/\/github\.com\/WhiskeyHouse\/ignition-mcp"/);
   assert.match(card, /ignition-ide-plugins[\s\S]*14 stars/);
   assert.match(card, /ignition-lint[\s\S]*11 stars/);
   assert.match(card, /patrick@cruciblesoftware\.co/);

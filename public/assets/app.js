@@ -1,5 +1,5 @@
 import { hydrateMermaid, normalizeRenderedDom } from './fieldnotes-renderer-browser.js';
-import { connectGithub, parseCardRepositories, requestGithub } from './github.js';
+import { connectGithub, parseCardRepositories, requestGithub, requestGithubResource } from './github.js';
 import './code-dust.js';
 import './social.js';
 
@@ -139,21 +139,26 @@ function initCardHook() {
 async function hydrateCardRepositories() {
   const container = $('[data-card-repos]');
   if (!container) return;
-  const owner = container.dataset.owner;
   const cards = $$('.card-repo[data-repo-name]');
-  const wanted = cards.map(card => card.dataset.repoName).filter(Boolean);
+  const wanted = cards.map(card => card.dataset.repoFullName || card.dataset.repoName).filter(Boolean);
   const status = $('[data-card-repos-status]');
-  if (!owner || !wanted.length) return;
+  if (!wanted.length) return;
   try {
+    const results = await Promise.allSettled(wanted.map((fullName) => {
+      const [owner, repo] = fullName.split('/');
+      if (!owner || !repo) throw new Error('Invalid repository highlight.');
+      return requestGithubResource(`repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
+    }));
     const repositories = parseCardRepositories(
-      await requestGithub(`users/${encodeURIComponent(owner)}/repos?per_page=100&type=owner&sort=updated`),
+      results.flatMap(result => result.status === 'fulfilled' ? result.value : []),
       wanted,
       wanted.length,
     );
     if (!repositories.length) throw new Error('No matching public repositories found.');
     const byName = new Map(repositories.map(repository => [repository.name, repository]));
+    const byFullName = new Map(repositories.map(repository => [repository.fullName, repository]));
     for (const card of cards) {
-      const repository = byName.get(card.dataset.repoName);
+      const repository = byFullName.get(card.dataset.repoFullName) || byName.get(card.dataset.repoName);
       if (!repository) continue;
       card.href = repository.url;
       card.querySelector('[data-repo-stars]').textContent = `${repository.stars} ${repository.stars === 1 ? 'star' : 'stars'}`;

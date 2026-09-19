@@ -47,32 +47,41 @@ export function parseReleases(releases, repo) {
 
 export function parseCardRepositories(repositories, wantedNames, limit = 5) {
   if (!Array.isArray(repositories) || !Array.isArray(wantedNames)) return [];
-  const wanted = new Set(wantedNames.filter(name => typeof name === 'string' && /^[\w.-]+$/u.test(name)));
-  const byName = new Map();
+  const wanted = new Set(wantedNames.filter(name => typeof name === 'string' && (allowedRepo.test(name) || /^[\w.-]+$/u.test(name))));
+  const byKey = new Map();
   for (const repository of repositories) {
     if (!repository || typeof repository !== 'object' || repository.fork || repository.archived) continue;
     const name = repository.name;
+    const fullName = repository.full_name;
     const url = githubUrl(repository.html_url);
-    if (!wanted.has(name) || !url) continue;
-    byName.set(name, {
+    if (!url || !name) continue;
+    const keys = [name, allowedRepo.test(fullName || '') ? fullName : ''].filter(Boolean);
+    if (!keys.some(key => wanted.has(key))) continue;
+    const parsed = {
       name,
+      ...(allowedRepo.test(fullName || '') ? { fullName } : {}),
       url,
       description: typeof repository.description === 'string' ? repository.description : '',
       stars: Number.isInteger(repository.stargazers_count) && repository.stargazers_count >= 0 ? repository.stargazers_count : 0,
       language: typeof repository.language === 'string' && repository.language ? repository.language : 'Repository',
-    });
+    };
+    for (const key of keys) byKey.set(key, parsed);
   }
-  return wantedNames.flatMap(name => byName.get(name) ?? []).slice(0, limit);
+  return wantedNames.flatMap(name => byKey.get(name) ?? []).slice(0, limit);
 }
 
-export async function requestGithub(path, fetcher = fetch) {
+export async function requestGithubResource(path, fetcher = fetch) {
   const response = await fetcher(`https://api.github.com/${path}`, { headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, signal: AbortSignal.timeout(8000), credentials: 'omit' });
   if (!response.ok) {
     if (response.status === 403 || response.status === 429) throw new Error('GitHub is limiting requests. Please try again later.');
     if (response.status === 404) throw new Error('This public GitHub account or repository could not be found.');
     throw new Error('GitHub is temporarily unavailable. Please try again.');
   }
-  const data = await response.json();
+  return response.json();
+}
+
+export async function requestGithub(path, fetcher = fetch) {
+  const data = await requestGithubResource(path, fetcher);
   if (!Array.isArray(data)) throw new Error('GitHub returned an unexpected response.');
   return data;
 }
