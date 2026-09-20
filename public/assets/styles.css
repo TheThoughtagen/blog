@@ -385,7 +385,9 @@
   .external-grid span { font-family: var(--mono); font-size: 10px; color: var(--accent); }
   .external-grid h3 { font-size: 23px; margin: 14px 0; }
   .external-grid p { font-size: 13px; }
-  .site-header nav .nav-call { color: var(--accent); }
+  .site-header nav .nav-call { gap: 12px; padding: 10px 14px; color: var(--accent-text); }
+  .site-header nav .nav-call:hover, .site-header nav .nav-call[aria-current] { color: var(--accent-text); }
+  .site-header nav .nav-call[aria-current]::before { display: none; }
   .reboot-link { display: flex; align-items: center; gap: 12px; padding: 0; margin-top: 14px; min-height: 28px; font-family: var(--mono); font-size: 9px; color: var(--accent); }
   .reboot-link:hover { text-decoration: underline; }
   .channel-strip { display: grid; grid-template-columns: 1fr 1fr; border-block: 1px solid var(--line); margin-top: 60px; }
@@ -595,7 +597,7 @@
     .colophon h2 { font-size: 29px; }
     .external-grid { grid-template-columns: 1fr; }
     .site-header nav { gap: 23px; }
-    .site-header nav .nav-call { white-space: nowrap; }
+    .site-header nav .nav-call { white-space: nowrap; padding: 8px 12px; }
     .channel-strip { grid-template-columns: 1fr; margin-top: 38px; }
     .channel-card, .channel-card + .channel-card { padding: 27px 0; border-left: 0; }
     .channel-card + .channel-card { border-top: 1px solid var(--line); }

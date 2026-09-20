@@ -12,6 +12,7 @@ export const site = {
     ],
   },
   description: 'Patrick Mannion’s notebook on industrial software, reliable integrations, AI experiments, and leading technical teams.',
+  email: 'patrick@cruciblesoftware.co',
   siteUrl: 'https://thoughts.cruciblesoftware.co/',
   github: { username: 'TheThoughtagen', repositories: [] },
   ignitionTools: [
@@ -46,7 +47,7 @@ export const site = {
       repositoryUrl: 'https://github.com/WhiskeyHouse/ignition-git-module',
     },
   ],
-  links: { linkedin: 'https://www.linkedin.com/in/mannionpatrick/', x: 'https://x.com/__pattym__', substack: '', patreon: '', booking: '', subscribe: '' },
+  links: { linkedin: 'https://www.linkedin.com/in/mannionpatrick/', x: 'https://x.com/__pattym__', substack: '', patreon: '', booking: 'https://cal.com/patrick-mannion-rebycs', subscribe: '' },
   // Use a Buttondown username for the inline form, or links.subscribe for any provider.
   newsletter: { buttondownUsername: '' },
   membership: { enabled: false, url: '' },
