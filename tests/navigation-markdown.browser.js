@@ -187,6 +187,16 @@ async function browserChecks(page) {
   });
   check(normalizedAgain === normalized, 'Mermaid normalized DOM is deterministic across hydration runs');
 
+  await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
+  await page.keyboard.press('j');
+  const afterJ = await page.evaluate(() => ({ y: scrollY, max: document.documentElement.scrollHeight - innerHeight }));
+  check(afterJ.y > 0 && afterJ.y < 400 && afterJ.y < afterJ.max, `j scrolls an article by a step, not to the end (scrollY ${afterJ.y} of ${afterJ.max})`);
+  await page.keyboard.press('j');
+  const afterJJ = await page.evaluate(() => scrollY);
+  check(afterJJ > afterJ.y, `repeated j keeps scrolling the article (scrollY ${afterJ.y} -> ${afterJJ})`);
+  await page.keyboard.press('k');
+  check(await page.evaluate(() => scrollY) < afterJJ, 'k scrolls an article back up');
+
   const richSelectors = [
     ['table', 'Markdown table'], ['pre code', 'highlighted code'], ['.katex', 'math'],
     ['figure img', 'figure image'], ['.fieldnotes-mermaid, svg.flowchart', 'Mermaid'],
