@@ -250,6 +250,33 @@ commandDialog.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && document.activeElement === input) { event.preventDefault(); results.querySelectorAll('.command-result')[resultIndex]?.click(); }
 });
 
+// A tap glides one step. Holding glides per frame while OS key repeats keep arriving, so a
+// swallowed keyup (browser extensions do this) can't leave the page scrolling on its own.
+let heldScroll = null;
+function heldScrollKey(key, repeat) {
+  const now = performance.now();
+  if (repeat && heldScroll?.key === key) { heldScroll.beat = now; heldScroll.glideStart ||= now; return; }
+  stopHeldScroll();
+  const direction = key === 'j' ? 1 : -1;
+  if (!repeat) window.scrollBy({ top: direction * 80, behavior: 'smooth' });
+  const state = { key, direction, beat: now, glideStart: repeat ? now : 0, last: 0, frame: 0 };
+  const step = (time) => {
+    if (time - state.beat > (state.glideStart ? 150 : 2500)) { stopHeldScroll(); return; }
+    if (state.glideStart) {
+      const speed = 1400 * Math.min(1, Math.max(0, time - state.glideStart) / 350);
+      if (state.last) window.scrollBy({ top: direction * speed * (time - state.last) / 1000, behavior: 'instant' });
+      state.last = time;
+    }
+    state.frame = requestAnimationFrame(step);
+  };
+  state.frame = requestAnimationFrame(step);
+  heldScroll = state;
+}
+function stopHeldScroll() { if (heldScroll) cancelAnimationFrame(heldScroll.frame); heldScroll = null; }
+document.addEventListener('keyup', (event) => { if (heldScroll && event.key.toLowerCase() === heldScroll.key) stopHeldScroll(); });
+window.addEventListener('blur', stopHeldScroll);
+document.addEventListener('visibilitychange', stopHeldScroll);
+
 let lastG = 0;
 document.addEventListener('keydown', (event) => {
   if (event.defaultPrevented || event.isComposing || event.altKey) return;
@@ -261,7 +288,12 @@ document.addEventListener('keydown', (event) => {
   if (event.key === '/') { event.preventDefault(); openSearch(); return; }
   if (event.key === '?') { event.preventDefault(); openDialog(helpDialog); return; }
   if (event.key === ':') { event.preventDefault(); openSearch(':'); return; }
-  if (event.key === 'j' || event.key === 'k') {
+  if ((event.key === 'j' || event.key === 'k') && document.body.dataset.page === 'article') {
+    // Articles have no note list to step through, so j/k scroll like a pager.
+    event.preventDefault();
+    if (reducedMotion.matches) { window.scrollBy({ top: event.key === 'j' ? 80 : -80, behavior: 'instant' }); return; }
+    heldScrollKey(event.key, event.repeat);
+  } else if (event.key === 'j' || event.key === 'k') {
     const links = $$('.note-link').filter((link) => link.getClientRects().length);
     if (!links.length) return;
     event.preventDefault(); const current = links.indexOf(document.activeElement);
