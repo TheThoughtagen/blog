@@ -222,6 +222,21 @@ Hello **rendered** world.
   assert.equal(data.articles[0].url, '/notes/escaping-systems/');
   assert.equal(data.articles[0].title, 'Escaping <systems>');
   await access(join(outputDir, 'notes/escaping-systems/images/diagram.png'));
+  const home = await readFile(join(outputDir, 'index.html'), 'utf8');
+  assert.match(home, /<div class="featured-art featured-photo" aria-hidden="true"><img src="\/notes\/escaping-systems\/images\/diagram\.png" alt=""/);
+  assert.doesNotMatch(home, /boundary-diagram/);
+});
+
+test('a featured note without local images keeps the boundary diagram artwork', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  await mkdir(join(contentDir, 'plain-note'), { recursive: true });
+  await writeFile(join(contentDir, 'plain-note/index.md'), '---\ntitle: "Plain note"\ndescription: "No pictures."\ndate: "2026-09-15"\ncategory: "Development"\nfeatured: true\n---\nJust text.\n');
+  await build({ rootDir, contentDir, outputDir });
+  const home = await readFile(join(outputDir, 'index.html'), 'utf8');
+  assert.match(home, /class="boundary-diagram"/);
+  assert.doesNotMatch(home, /featured-photo/);
 });
 
 test('build publishes linked deterministic tag archives and includes their URLs in the sitemap', async () => {
