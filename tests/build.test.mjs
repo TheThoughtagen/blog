@@ -212,7 +212,7 @@ Hello **rendered** world.
   assert.doesNotMatch(html, /<script>alert\('unsafe'\)<\/script>/);
   assert.match(html, /aria-label="On this page"[\s\S]*href="#first-boundary"[\s\S]*<ol>[\s\S]*href="#inner-detail"/);
   assert.match(html, /<time datetime="2026-09-15">15 Sep 2026<\/time>/);
-  assert.match(html, /rel="canonical" href="https:\/\/thoughts\.cruciblesoftware\.co\/notes\/escaping-systems\/"/);
+  assert.match(html, /rel="canonical" href="https:\/\/patrickmannion\.dev\/notes\/escaping-systems\/"/);
   assert.match(html, /property="og:type" content="article"/);
   assert.match(html, /property="article:published_time" content="2026-09-15"/);
   assert.match(html, /data-copy-markdown/);
@@ -257,8 +257,8 @@ Newer body.
   assert.match(article, /href="\/tags\/data-quality\/"[^>]*>Data Quality<\/a>/);
   assert.match(archive, /<h1>Data Quality<span class="accent">\.<\/span><\/h1>/);
   assert.ok(archive.indexOf('Newer note') < archive.indexOf('Older note'), 'tag archive preserves publication ordering');
-  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/tags\/data-quality\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/tags\/reliability\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/tags\/data-quality\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/tags\/reliability\/<\/loc>/);
 });
 
 test('build materializes Unicode tag archives at decoded static-server paths', async () => {
@@ -557,8 +557,8 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.doesNotMatch(sitemap, /\/notes\//);
   assert.doesNotMatch(feed, /<item>/);
   assert.match(feed, /<rss version="2\.0"><channel>/);
-  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/card\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/thoughts\.cruciblesoftware\.co\/card\/qr\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/card\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/card\/qr\/<\/loc>/);
   assert.match(lab, /Ignition tools/);
   assert.match(about, /About Patrick/);
   assert.match(connect, /Say hello/);
@@ -575,7 +575,7 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(card, /ignition-lint[\s\S]*11 stars/);
   assert.match(card, /patrick@cruciblesoftware\.co/);
   assert.match(cardQr, /Scan to save contact/);
-  assert.match(cardQr, /https:\/\/thoughts\.cruciblesoftware\.co\/card\//);
+  assert.match(cardQr, /https:\/\/patrickmannion\.dev\/card\//);
   assert.match(cardQr, /class="card-qr-code"/);
   assert.match(cardQr, /class="card-qr-light"/);
   assert.match(cardQr, /class="card-qr-dark"/);
@@ -591,7 +591,7 @@ test('build supports an empty notebook without note URLs, feed items, or heading
     await access(join(outputDir, 'assets/icons', `fieldnotes-${theme}.svg`));
   }
   assert.match(vcard, /FN:Patrick Mannion/);
-  assert.match(vcard, /PHOTO;MEDIATYPE=image\/png:https:\/\/thoughts\.cruciblesoftware\.co\/assets\/patrick-mannion-headshot\.png/);
+  assert.match(vcard, /PHOTO;MEDIATYPE=image\/png:https:\/\/patrickmannion\.dev\/assets\/patrick-mannion-headshot\.png/);
 });
 
 test('a Markdown note without H2 or H3 headings omits the on-page navigation', async () => {

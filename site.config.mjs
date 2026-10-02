@@ -13,7 +13,7 @@ export const site = {
   },
   description: 'Patrick Mannion’s notebook on industrial software, reliable integrations, AI experiments, and leading technical teams.',
   email: 'patrick@cruciblesoftware.co',
-  siteUrl: 'https://thoughts.cruciblesoftware.co/',
+  siteUrl: 'https://patrickmannion.dev/',
   github: { username: 'TheThoughtagen', repositories: [] },
   ignitionTools: [
     {
