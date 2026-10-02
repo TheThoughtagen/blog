@@ -2,14 +2,9 @@
 
 A static engineering notebook built from Markdown, with RSS, local search, keyboard navigation, three color themes, and optional public GitHub activity/releases. Requires Node.js 24 or newer.
 
-Live site: https://thoughts.cruciblesoftware.co/
+Live site: https://patrickmannion.dev/
 
-Published permanently to the existing here.now account backing the public site. Patrick’s introduction is configured; LinkedIn and X are configured; additional career details can be added to the bio. Update this existing site rather than creating a new one:
-
-```sh
-node scripts/build.mjs
-bash "$HOME/.agents/skills/here-now/scripts/publish.sh" dist --client opencode --slug awake-iris-z6ww
-```
+Hosted on Cloudflare Pages (project `patrickmannion`) under Patrick’s personal Cloudflare account. Patrick’s introduction is configured; LinkedIn and X are configured; additional career details can be added to the bio. Deploys run from GitHub Actions; see Continuous Deployment below.
 
 **Local Commands**
 Run from this directory:
@@ -146,20 +141,21 @@ The home and Lab pages include a lazy-loaded official X timeline with a permanen
 Use the actual post URL and publication date. Crossposts appear on the home page and in search; RSS contains local articles only. Rebuild after configuration or content changes.
 
 **Continuous Deployment**
-Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → publish `dist/` to the existing here.now site. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages with `cloudflare/wrangler-action`. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
 
-The repository’s encrypted Actions secret `HERENOW_API_KEY` supplies authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
+The repository’s encrypted Actions secrets `CLOUDFLARE_API_TOKEN` (scoped to Cloudflare Pages edit) and `CLOUDFLARE_ACCOUNT_ID` supply authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
 
-`scripts/deploy.mjs` updates only the here.now site slug `awake-iris-z6ww`, which backs the public `thoughts.cruciblesoftware.co` origin configured in `site.config.mjs`. It includes file hashes to reuse unchanged assets, reads the live version before publishing, and sends it as `baseVersionId` to reject changes made during deployment. The repository is the source of truth; the next deployment replaces edits made directly on the host before that run. An upload failure stops before finalization, and hidden files/symlinks are rejected. The completed run summary links to the deployed site.
+`scripts/check-dist.mjs` runs before publishing and rejects hidden files, symlinks, unsupported file types, and a missing `index.html`, since everything in `dist/` becomes public. `functions/_middleware.js` permanently redirects the legacy `thoughts.cruciblesoftware.co` host to the same path on `patrickmannion.dev`; that host stays attached to the Pages project so old links keep resolving. The repository is the source of truth; each deployment replaces the previous one.
 
 Check runs at https://github.com/TheThoughtagen/blog/actions. If a run fails, fix the error and rerun it from GitHub Actions or push a correction to `main`. If replacing an old deployment, rerun the latest workflow rather than an older commit’s run.
 
-For manual deployment using a locally configured `HERENOW_API_KEY`:
+For a manual deployment with a locally authenticated Wrangler (`npx wrangler login`):
 
 ```sh
 npm test
 npm run build
-node --env-file=.env scripts/deploy.mjs
+node scripts/check-dist.mjs
+npx wrangler pages deploy dist --project-name=patrickmannion --branch=main
 ```
 
 Animation browser checks: `playwright-cli -s=welcome run-code --filename=tests/welcome.browser.js` with the preview server running.

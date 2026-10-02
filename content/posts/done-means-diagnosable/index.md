@@ -4,7 +4,6 @@ description: "A first field note on why production integrations are only done wh
 date: "2026-09-18"
 category: "Industrial software"
 tags: ["Ignition", "Integrations", "Diagnostics", "Reliability"]
-featured: true
 ---
 ## The failure mode
 

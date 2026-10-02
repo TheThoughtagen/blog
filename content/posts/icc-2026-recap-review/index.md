@@ -8,6 +8,7 @@ tags:
   - SCADA
   - Industrial Software
 draft: false
+featured: true
 ---
 
 I'm a bit late getting this out... I always manage to pay for time away... 
