@@ -76,7 +76,7 @@ Every post starts with YAML frontmatter. `frontmatter.schema.json` is the source
 
 - `title`: nonempty string used as the page title. Do not repeat it as an H1 in the Markdown body.
 - `description`: nonempty summary used in listings, search, RSS, and metadata.
-- `date`: a real calendar date in `YYYY-MM-DD` form.
+- `date`: a real calendar date in `YYYY-MM-DD` form. A non-draft post with a future date is scheduled: it is fully validated on every build but stays out of every public artifact until the first build on or after that date in Mountain Time.
 - `category`: one of `Industrial software`, `Development`, `Leadership`, or `AI & ML`.
 
 The optional fields are:
@@ -141,7 +141,7 @@ The home and Lab pages include a lazy-loaded official X timeline with a permanen
 Use the actual post URL and publication date. Crossposts appear on the home page and in search; RSS contains local articles only. Rebuild after configuration or content changes.
 
 **Continuous Deployment**
-Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages with `cloudflare/wrangler-action`. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages with `cloudflare/wrangler-action`. A daily scheduled run at 13:00 UTC (7:00 MDT / 6:00 MST) rebuilds `main` so scheduled posts go live on their date without a push; it can also be started by hand from the Actions tab. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
 
 The repository’s encrypted Actions secrets `CLOUDFLARE_API_TOKEN` (scoped to Cloudflare Pages edit) and `CLOUDFLARE_ACCOUNT_ID` supply authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
 

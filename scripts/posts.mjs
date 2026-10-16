@@ -113,12 +113,18 @@ export async function loadPosts({ contentDir, schemaPath }) {
   return posts.sort(comparePosts);
 }
 
-export function publishedPosts(posts) {
-  return posts.filter(post => post.draft !== true).sort(comparePosts);
+// Publication days follow Patrick's calendar, not the build machine's UTC clock.
+export function siteToday(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver' }).format(now);
 }
 
-export function selectFeatured(posts) {
-  const published = publishedPosts(posts);
+// A post dated in the future is scheduled: validated now, published by the first build on or after its date.
+export function publishedPosts(posts, today = siteToday()) {
+  return posts.filter(post => post.draft !== true && post.date <= today).sort(comparePosts);
+}
+
+export function selectFeatured(posts, today = siteToday()) {
+  const published = publishedPosts(posts, today);
   const featured = published.filter(post => post.featured === true);
   if (featured.length > 1) {
     throw new Error('Multiple published posts are marked featured.');
