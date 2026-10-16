@@ -3,10 +3,10 @@ name: Deploy site
 on:
   push:
     branches: [main]
-  # Daily rebuild publishes posts whose date has arrived. 13:00 UTC is 7:00 MDT / 6:00 MST,
+  # Daily rebuild publishes posts whose date has arrived. 13:17 UTC is 7:17 MDT / 6:17 MST (off the busy top of the hour),
   # early enough that cron delays still land before 8:30 MT social posts.
   schedule:
-    - cron: '0 13 * * *'
+    - cron: '17 13 * * *'
   workflow_dispatch:
 
 permissions:
