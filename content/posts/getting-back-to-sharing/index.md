@@ -1,7 +1,7 @@
 ---
 title: Coming up for air - a reflection of the last 3 or so years of learning & building.  
 description: A few notes on what I've been building, and getting back to writing about it.
-date: 2026-09-21
+date: 2026-10-22
 category: Development
 tags:
   - Developer tools
