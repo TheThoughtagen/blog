@@ -1,13 +1,13 @@
 ---
 title: Building this blog with a handful of agent prompts
 description: How FIELDNOTES got its terminal themes, a fal.ai walk-on animation, Vim motions, and a new home - mostly by describing what I wanted to coding agents.
-date: 2026-10-02
+date: 2026-10-21
 category: Development
 tags:
   - AI
   - Developer tools
   - FIELDNOTES
-draft: true
+draft: false
 ---
 
 I wanted a place to write that felt like mine - not another Medium page or a LinkedIn article that disappears in the feed after a day. I also didn't have weeks to spend on it. So this site is mostly the result of describing what I wanted to coding agents, reviewing what came back, and saying "no, not like that" a few times.
