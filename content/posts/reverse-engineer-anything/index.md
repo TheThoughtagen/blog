@@ -1,7 +1,7 @@
 ---
 title: Reverse Engineer Anything, Including Your Plant
 description: Agents that take software apart are trending on GitHub. That's a security problem everywhere, and a bigger one for on-prem industrial software where production is king.
-date: 2026-10-16
+date: 2026-10-20
 category: Industrial software
 tags:
   - AI
@@ -9,7 +9,7 @@ tags:
   - OT
   - Reverse Engineering
   - Industrial Software
-draft: true
+draft: false
 ---
 
 If you've been anywhere near GitHub trending in the last couple of weeks, you've seen it. [REA - "Reverse Engineer Anything"](https://github.com/morluto/rea) went from a quiet repo to one of the most-starred projects on the site in about a week. It's sitting north of 280K stars as I write this.
