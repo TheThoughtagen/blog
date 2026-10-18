@@ -1,0 +1,50 @@
+{
+  "source": "Randomized portfolio data",
+  "scope": "Demo / Plant / Process area",
+  "randomized": true,
+  "dataNotice": "Names, identifiers, paths, and connections are randomized.",
+  "nodeCount": 7618,
+  "edgeCount": 14165,
+  "counts": {
+    "equipment": 16,
+    "historian": 4905,
+    "document": 7,
+    "mes": 1890,
+    "cmms": 195,
+    "electrical": 395,
+    "process": 210
+  },
+  "inventorySha256": "1fa73a79e5e3cef499b109c21b5bf4502b0580d80b805038058cad20a1ceb5b0",
+  "snapshotSha256": "c66517f93af102730d5d0d071aeabee527c84f11298cdb5f3d218f4b1a44097d",
+  "posterSha256": "a207d9e0dfe5d36f261366c9d7e4b29f29b86d341bea3b31f17af4f13ffe87e4",
+  "graphEngine": "Sigma / Graphology (same libraries as Forge Cortex)",
+  "libraries": [
+    "events@3.3.0",
+    "graphology@0.26.0",
+    "sigma@3.0.3",
+    "graphology-utils@2.5.2"
+  ],
+  "domains": {
+    "source": "Validated Cortex connected-plant scale model",
+    "fictional": true,
+    "nodeTypes": [
+      "cmms:MaintenancePlan",
+      "cmms:WorkOrder",
+      "electrical:Circuit",
+      "electrical:Panel",
+      "electrical:Terminal",
+      "electrical:WireConnection",
+      "isa88:Batch",
+      "isa88:ControlRecipe",
+      "isa88:MasterRecipe",
+      "isa88:Procedure",
+      "isa88:Unit",
+      "isa95:MaterialDefinition",
+      "isa95:MaterialLot",
+      "mes:ProductionOrder",
+      "mes:ScheduleOrder",
+      "process:Connection",
+      "process:Port"
+    ]
+  }
+}

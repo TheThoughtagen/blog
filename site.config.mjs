@@ -4,9 +4,9 @@ export const site = {
   name: 'FIELDNOTES',
   author: 'Patrick Mannion',
   bio: {
-    short: 'This is my notebook on industrial software, software development, and leading technical teams.',
+    short: 'I build industrial software at Whiskey House and open-source tools for Ignition. This is where I share the work and the notes behind it.',
     paragraphs: [
-      'I’m Patrick Mannion. FIELDNOTES is where I’m putting longer notes about software, factory systems, and the people who build and maintain them.',
+      'At Whiskey House I work on manufacturing software, warehouse operations, and industrial data. I also build Ignition tools for gateway access, editing, linting, and version control.',
       'The questions behind this notebook are practical: how do you tell whether production data is fresh? What happens when an integration drops a message? Can someone else diagnose a failure while the usual expert is away?',
       'You’ll find notes on those questions, alongside experiments with AI and the decisions involved in running a technical team. I want each piece to explain a specific problem, the options, and what still needs testing.',
     ],

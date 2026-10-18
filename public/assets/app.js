@@ -193,6 +193,8 @@ $$('dialog:not(#boot-dialog)').forEach((dialog) => {
 
 const commands = [
   { title: ':home', description: 'Return to the notebook', action: () => { location.href = '/'; } },
+  { title: ':work', description: 'Whiskey House projects and open-source tools', action: () => { location.href = '/work/'; } },
+  { title: ':demos', description: 'Watch the project walkthroughs', action: () => { location.href = '/work/#demos'; } },
   { title: ':lab', description: 'Visit the workbench', action: () => { location.href = '/lab/'; } },
   { title: ':about', description: 'Behind the terminal', action: () => { location.href = '/about/'; } },
   { title: ':card', description: 'Open Patrick Mannion contact card', action: () => { location.href = '/card/'; } },
@@ -216,7 +218,7 @@ function renderPalette() {
   const query = input.value.trim().toLowerCase();
   let matches;
   if (query.startsWith(':')) matches = commands.filter((command) => `${command.title} ${command.description}`.toLowerCase().includes(query.slice(1)));
-  else if (data) matches = [...data.articles, ...data.externalPosts, ...(data.ignitionTools || []).map((tool) => ({ ...tool, title: tool.name, url: tool.documentationUrl, category: 'Ignition tool', source: 'Documentation', tags: [tool.repositoryUrl] }))].filter((note) => (note.searchText || [note.title, note.description, note.category, ...(note.tags || [])].join(' ')).toLowerCase().includes(query)).map((note) => ({ title: note.title, description: `${note.category} / ${note.source || 'Field note'}`, url: note.url, external: Boolean(note.source) }));
+  else if (data) matches = [...data.articles, ...data.externalPosts, ...(data.ignitionTools || []).map((tool) => ({ ...tool, title: tool.name, url: tool.documentationUrl, category: 'Ignition tool', source: 'Documentation', tags: [tool.repositoryUrl] })), ...(data.projects || [])].filter((note) => (note.searchText || [note.title, note.description, note.category, ...(note.tags || [])].join(' ')).toLowerCase().includes(query)).map((note) => ({ title: note.title, description: `${note.category} / ${note.source || (note.url.startsWith('/work/') ? 'Project' : 'Field note')}`, url: note.url, external: Boolean(note.source) }));
   else {
     const paragraph = document.createElement('p'); paragraph.className = 'command-empty'; paragraph.textContent = dataError ? 'Search could not load. The notebook is still available below.' : 'Loading the notebook index...'; results.append(paragraph);
     if (dataError) { const retry = document.createElement('button'); retry.className = 'command-result'; retry.textContent = 'Retry search connection'; retry.addEventListener('click', async () => { dataPromise = null; dataError = false; const pending = loadData(); renderPalette(); await pending; if (commandDialog.open && !input.value.trim().startsWith(':')) renderPalette(); }); results.append(retry); }
@@ -288,7 +290,10 @@ document.addEventListener('keydown', (event) => {
   if (event.key === '/') { event.preventDefault(); openSearch(); return; }
   if (event.key === '?') { event.preventDefault(); openDialog(helpDialog); return; }
   if (event.key === ':') { event.preventDefault(); openSearch(':'); return; }
-  if ((event.key === 'j' || event.key === 'k') && document.body.dataset.page === 'article') {
+  if ((event.key === 'j' || event.key === 'k') && document.body.dataset.page === 'work') {
+    event.preventDefault();
+    window.scrollBy({ top: event.key === 'j' ? 80 : -80, behavior: 'instant' });
+  } else if ((event.key === 'j' || event.key === 'k') && document.body.dataset.page === 'article') {
     // Articles have no note list to step through, so j/k scroll like a pager.
     event.preventDefault();
     if (reducedMotion.matches) { window.scrollBy({ top: event.key === 'j' ? 80 : -80, behavior: 'instant' }); return; }

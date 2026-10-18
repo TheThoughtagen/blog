@@ -1,5 +1,38 @@
 # Preview Verification
 
+## Connected Plant Portfolio — October 18, 2026
+
+The portfolio branch is based on the current Markdown publication pipeline and
+Cloudflare Pages deployment. It adds `/work/`, homepage and navigation links,
+three Whiskey House project write-ups, six open-source projects, four original
+terminal recordings, four Forge Cortex walkthroughs, and the customer portal
+film. The copy describes concrete workflows and avoids unsupported outcome
+claims. Existing published notes, contact card, QR code, and booking links
+remain available.
+
+Public graph data contains 7,618 nodes and 14,165 relationships with randomized
+names, identifiers, paths, properties, and connections. The native Cortex 3D
+viewer uses an invented 15-asset, 208-element model and generated telemetry.
+The build checks the graph schema, topology, poster, media hashes, and scene
+artifacts. No operational graph export or production readings are published.
+
+The scene bundle records source commit
+`2c4129c81fad6e8c873925f3e07f78cf647ba113` from
+[Forge Cortex PR #48](https://github.com/WhiskeyHouse/forge-cortex/pull/48),
+including the shared diameter-based default for pipe bend radii. Source
+validation passed all 341 frontend tests and TypeScript checking under Node 22.
+
+Site validation passed all 126 Node tests, the self-contained Markdown browser
+gate, a 16-page/two-note production build, and the distribution file check.
+Another 303 Chromium checks passed: 142 for navigation and the existing site
+pages, 24 for recordings, 54 for the graph, 29 for 3D/history, 23 for rendered
+process overlays, and 31 for keyboard scrolling. Desktop and mobile screenshots
+were inspected. The process test starts a fresh page so a preceding test's
+fidelity view cannot suppress its overlays.
+The combined preview runs at `http://127.0.0.1:4184/`; it has not been deployed.
+
+Earlier entries below describe previous releases and their publication state.
+
 ## Supplied Original Artwork
 
 September 8, 2026: the supplied JPEG from `Downloads/Patrick-VaultBoy-Terminal`

@@ -26,6 +26,37 @@ The build validates configuration/content, replaces `dist/`, copies `public/`, a
 
 The server builds once at startup and serves `http://127.0.0.1:4173`. Override the port with `PORT=4174 node scripts/serve.mjs`. There is no file watcher: rebuild and refresh after edits, or restart the server. Tests use Node's built-in runner and injected fetch fixtures; they do not call GitHub, start a server, or rebuild `dist/`.
 
+**Portfolio And Demos**
+
+`/work/` contains the Whiskey House project write-ups, customer portal film, four Forge Cortex walkthroughs, and four Ignition terminal recordings. Edit their copy and links in `content/work.mjs`; `scripts/portfolio.mjs` renders the page and homepage teaser. `content/work-evidence.json` pins the original recordings by SHA-256. The videos use native playback controls and load on request.
+
+The graph has 7,618 nodes and 14,165 relationships connecting equipment, historian tags, documents, MES, CMMS, electrical wiring, and process flow. Its records, properties, and connections are randomized demonstration data. `scripts/randomize-cortex-graph.mjs` enforces the public schema and regenerates this data; the build checks its hashes and graph poster. Do not replace these assets with an operational export.
+
+The 3D demo bundles Forge Cortex's native renderer and generator with a fictional 15-asset, 208-element scene. It links equipment selection to the graph and provides generated live readings and 24-hour history. Vessel fill and temperature colors follow the selected readings; pipe markers show signed flow. Shared headers stay static without direction readings. Pause and reduced motion stop continuous animation.
+
+Native scene changes live in [Forge Cortex PR #48](https://github.com/WhiskeyHouse/forge-cortex/pull/48). To refresh the vendored renderer and generated scene from that checkout, use its supported Node.js 22 runtime:
+
+```sh
+node scripts/import-cortex-scene.mjs /path/to/forge-cortex/web
+```
+
+The importer records the source commit, source hashes, bundle licenses, and artifact hashes in `content/cortex-scene.json`. Regeneration needs that checkout's installed frontend dependencies; the normal site build uses the checked-in artifacts.
+
+With the preview server running, the portfolio browser checks follow the existing Playwright CLI workflow:
+
+```sh
+playwright-cli -s=portfolio open http://127.0.0.1:4173/work/ --browser=chrome
+playwright-cli -s=portfolio run-code --filename=tests/portfolio-shell.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/portfolio.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/cortex-graph.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/cortex-scene.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/cortex-process.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/keyboard-scroll.browser.js
+playwright-cli -s=portfolio close
+```
+
+On Work & demos, `j` and `k` scroll through the long page. The section links jump directly to the graph, 3D view, portal, and recordings. Search includes project destinations and retains the existing Ignition documentation results.
+
 **Configuration**
 Edit `site.config.mjs`:
 
@@ -107,7 +138,7 @@ Put images and other referenced files inside the same post directory, convention
 
 Drafts may remain under `content/posts/` for local editing. A post with `draft: true` is excluded from every public artifact: HTML, exact Markdown source, copied images, tag archives, search, RSS, and the sitemap. Malformed YAML still stops the build because the loader cannot safely establish draft status. Published posts must pass all schema, renderer, tag, heading, and asset checks. Diagnostics identify the post slug, validation stage, diagnostic code, and message.
 
-At most one published post may set `featured: true`; multiple explicit selections stop the build. If none is selected, the newest published post becomes featured, with the slug used as the deterministic tie-breaker for equal dates. With no published posts, the site intentionally builds the five core pages and an empty notebook state, plus empty search/RSS note collections. It does not create placeholder articles.
+At most one published post may set `featured: true`; multiple explicit selections stop the build. If none is selected, the newest published post becomes featured, with the slug used as the deterministic tie-breaker for equal dates. With no published posts, the site builds its core pages, including the portfolio and contact card, with an empty notebook state and empty search/RSS note collections. It does not create placeholder articles.
 
 The generated `/notes/<slug>/index.md` is an exact copy of the authored source. Article pages link to that raw source for opening or downloading, and the Copy Markdown control copies the same bytes represented as text.
 
@@ -141,6 +172,8 @@ The home and Lab pages include a lazy-loaded official X timeline with a permanen
 Use the actual post URL and publication date. Crossposts appear on the home page and in search; RSS contains local articles only. Rebuild after configuration or content changes.
 
 **Continuous Deployment**
+Pull requests run `.github/workflows/check.yml` to validate tests, the build, and publishable file types before review.
+
 Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages with `cloudflare/wrangler-action`. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
 
 The repository’s encrypted Actions secrets `CLOUDFLARE_API_TOKEN` (scoped to Cloudflare Pages edit) and `CLOUDFLARE_ACCOUNT_ID` supply authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
