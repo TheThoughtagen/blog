@@ -6,34 +6,34 @@ export const portfolio = {
   whiskeyHouse: [
     {
       id: 'production', number: '01', area: 'PRODUCTION SYSTEMS',
-      title: 'Follow a batch from recipe to lot.',
+      title: 'Adapt recipes to the production run.',
       name: 'Manufacturing execution',
-      description: 'Recipes, production orders, scheduling, and lot traceability for whiskey production.',
-      problem: 'A production order has to retain its recipe, input lots, equipment, and output history as work moves between systems.',
-      approach: 'I work on recipe management, production scheduling, quality records, and ERP handoffs. The batch record ties those steps to the materials and equipment used in the run.',
-      focus: 'Batch and lot identifiers that carry through production records and ERP handoffs.',
+      description: 'Configurable recipes and schedules connected to material lots, equipment events, quality records, and ERP handoffs.',
+      problem: 'A batch needs a consistent record across its recipe, material consumption, equipment, quality checks, and ERP handoffs.',
+      approach: 'The MES links recipes, production orders, schedules, material lots, and quality records. I connect warehouse events to inventory and lot records, equipment events through MQTT, and ERP handoffs through queued messages.',
+      focus: 'Per-run recipe instances carry their own parameters and material requirements while retaining their link to the master recipe. Different products and production runs can use the same execution system.',
       tags: ['TypeScript', 'NestJS', 'GraphQL', 'Prisma', 'MQTT'],
     },
     {
       id: 'warehouse', number: '02', area: 'WAREHOUSE OPERATIONS',
-      title: 'Track a barrel through the warehouse.',
+      title: 'Keep barrel movements tied to production.',
       name: 'Warehouse management',
-      description: 'Barrel inventory, warehouse locations, scanning workflows, and movement history.',
-      problem: 'The inventory record needs to show where a barrel is now and the movements that put it there.',
-      approach: 'Scan a barrel, record a move, and find its warehouse location. The web application and scanning workflows share the barrel’s inventory and event history.',
-      focus: 'A barrel identifier that links its physical movements to its recorded history.',
+      description: 'Barrel identity, lot traceability, warehouse jobs, and inventory shared across scanning workflows and the customer portal.',
+      problem: 'Filling, moving, or dumping a barrel changes more than its location. The job, lot, inventory balance, and movement history need to stay connected.',
+      approach: 'I connect warehouse jobs, barrel and lot records, scanning workflows, and the web application around the same inventory and event history. Those records also supply the customer portal, with access scoped to the signed-in customer.',
+      focus: 'Chained jobs carry work from one warehouse operation into the next. Configurable event rules let other systems receive the changes they need through MQTT.',
       tags: ['Next.js', 'NestJS', 'PostgreSQL', 'GraphQL', 'Android'],
       demo: 'https://whk-wms-demo.vercel.app/dashboard', demoLabel: 'Open warehouse demo',
       access: 'Whiskey House sign-in required.',
     },
     {
       id: 'forge', number: '03', area: 'INDUSTRIAL KNOWLEDGE GRAPH',
-      title: 'Find the equipment behind a reading.',
+      title: 'Extend the plant model across disciplines.',
       name: 'Forge Cortex workbench',
-      description: 'An industrial knowledge graph workbench with equipment exploration, model authoring, and agent-assisted changes.',
-      problem: 'Historian tags, drawings, and process records need links to the equipment they describe.',
-      approach: 'Forge Cortex lets us browse equipment, inspect linked records, and edit the plant model in versioned sessions. The walkthroughs show queries, type libraries, and agent-drafted changes.',
-      focus: 'Validate model changes and review their evidence before accepting them.',
+      description: 'A typed plant model connecting equipment, historian context, engineering evidence, and extensible operational domains.',
+      problem: 'A tag value, a drawing, and a work order describe different parts of the same equipment. Linking those records lets you move from a reading to its engineering and operational context.',
+      approach: 'My work on Forge Cortex connects equipment with historian tags and engineering evidence through graph exploration, 3D views, and agent queries. Model changes go through versioned authoring sessions, validation, and review.',
+      focus: 'Typed libraries define MES and maintenance references, electrical wiring, and process connections. We can extend the model while keeping source record identities, drawing evidence, and review requirements explicit.',
       tags: ['Go', 'Neo4j', 'Next.js', 'Knowledge graphs', 'AI agents'],
       demo: '#forge-walkthroughs', demoLabel: 'Watch the workbench in use',
     },
@@ -118,23 +118,23 @@ export const demos = [
 
 // Videos from the actual Forge Cortex workbench walkthrough suite.
 export const workbenchVideos = [
-  { id: 'forge-explorer', title: 'Equipment explorer', file: 'workbench-explorer', poster: 'forge-explorer', description: 'Search equipment, inspect its properties and relationships, explore its graph neighbourhood, and build a model query.' },
+  { id: 'forge-explorer', title: 'Equipment explorer', file: 'workbench-explorer', poster: 'forge-explorer', description: 'Start with equipment, follow its linked records, inspect properties and relationships, and build a query across the model.' },
   { id: 'forge-authoring', title: 'Model authoring', file: 'workbench-authoring', poster: 'forge-authoring', description: 'Open an authoring session, edit an equipment model, validate the changes, and prepare them for review.' },
-  { id: 'forge-design', title: 'Library & domain design', file: 'workbench-design', poster: 'forge-design', description: 'Work with type libraries, imported models, domains, and the rules that govern model changes.' },
+  { id: 'forge-design', title: 'Library & domain design', file: 'workbench-design', poster: 'forge-design', description: 'Extend the plant model through type libraries, imported models, and domains with explicit rules for changes.' },
   { id: 'forge-agents', title: 'Agents in the workbench', file: 'workbench-agents', poster: 'forge-agents', description: 'Ask an agent to draft equipment and relationship changes in its own session, with evidence and validation visible for review.' },
 ];
 
 export const portalFilm = {
   id: 'customer-portal', title: 'Customer portal launch film',
-  description: 'Production insight, inventory, barrel traceability, and a 3D rickhouse in a customer-facing view of the connected plant.',
+  description: 'Customer-scoped production, inventory, barrel traceability, and a 3D rickhouse, connected to the MES and warehouse systems.',
   file: 'customer-portal', poster: 'customer-portal',
 };
 
 export function portfolioSearchEntries() {
   return [
     { title: 'Whiskey House customer portal', description: portalFilm.description, category: 'Whiskey House', tags: ['Customer portal', 'Governance', 'Traceability', '3D'], url: '/work/#customer-portal' },
-    { title: 'Forge Cortex graph / Whiskey House', description: 'Explore randomized MES, CMMS, electrical wiring, and process flow through shared equipment.', category: 'Whiskey House', tags: ['Graph', 'Forge Cortex', 'MES', 'CMMS', 'Electrical', 'Process flow'], url: '/work/#cortex-graph' },
-    { title: 'Forge Cortex Plant 3D / live and historical readings', description: 'Explore the native Cortex 3D viewer with schematic equipment, generated telemetry, and 24-hour historical playback linked to the graph.', category: 'Interactive demo', tags: ['3D', 'Forge Cortex', 'Historian', 'Telemetry', 'Digital twin'], url: '/work/#plant3d' },
+    { title: 'Forge Cortex graph / Whiskey House', description: 'Follow production, maintenance, electrical, and process references through shared equipment in a randomized plant model.', category: 'Whiskey House', tags: ['Graph', 'Forge Cortex', 'MES', 'CMMS', 'Electrical', 'Process flow'], url: '/work/#cortex-graph' },
+    { title: 'Forge Cortex Plant 3D / live and historical readings', description: 'Move between equipment in 3D, mapped readings, 24-hour history, and the connected graph. Fictional scene and generated telemetry.', category: 'Interactive demo', tags: ['3D', 'Forge Cortex', 'Historian', 'Telemetry', 'Digital twin'], url: '/work/#plant3d' },
     ...portfolio.whiskeyHouse.map(project => ({ title: `${project.name} / Whiskey House`, description: project.description, category: 'Whiskey House', tags: project.tags, url: `/work/#${project.id}` })),
     ...portfolio.openSource.map(project => ({ title: project.title, description: project.description, category: 'Open source', tags: project.tags, url: `/work/#${project.id}` })),
     ...demos.map(demo => ({ title: demo.title + ' walkthrough', description: demo.description, tags: demo.tags, category: 'Recorded demo', url: '/work/?demo=' + demo.clip + '#demos' })),
