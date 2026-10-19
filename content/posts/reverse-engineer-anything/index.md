@@ -13,7 +13,7 @@ tags:
 draft: false
 ---
 
-If you've been anywhere near GitHub trending in the last couple of weeks, you've seen it. [REA - "Reverse Engineer Anything"](https://github.com/morluto/rea) went from a quiet repo to one of the most-starred projects on the site in about a week. It's sitting north of 280K stars as I write this.
+If you've been anywhere near GitHub trending in the last couple of weeks, you've seen it. [REA - "Reverse Engineer Anything"](https://github.com/morluto/rea) went from a quiet repo to one of the most-starred projects on the site in about a week. It's sitting north of 330K stars as I write this.
 
 The pitch is right there in the README: "See a feature you like. Understand how it works, down to the binary level."
 
@@ -27,7 +27,7 @@ My first reaction was "cool." My second reaction, about 30 seconds later, was "o
 
 Ghidra has been free since 2019. IDA, Hopper, binwalk, Wireshark - none of this is new. What kept most software from being taken apart wasn't access to tools, it was the time and skill to use them. Reverse engineering a non-trivial binary is slow, tedious, expert work. That friction was quietly doing a lot of security work for a lot of vendors.
 
-Agents remove the friction. Not completely - the hands-on reviews are fair that it's not a magic button yet - but the trend line is obvious. What took a specialist weeks takes a curious person with a coding agent an afternoon. And the next model release makes it better without anyone changing a line of REA.
+Agents remove the friction. Not completely - the [hands-on reviews](#resources) are fair that it's not a magic button yet - but the trend line is obvious. What took a specialist weeks takes a curious person with a coding agent an afternoon. And the next model release makes it better without anyone changing a line of REA.
 
 My main takeaway is that this is going to be a cybersecurity nightmare. Every closed binary, every "proprietary" protocol, every license check, every hardcoded credential that was protected mostly by being annoying to find - assume it's findable now. Security through obscurity was never a real control. Now it isn't even a speed bump.
 
@@ -74,5 +74,30 @@ For vendors: assume your customers' adversaries already have your binary decompi
 The cost of understanding software just dropped by orders of magnitude, and every assumption built on that cost being high needs another look. In industrial environments those assumptions are baked into equipment that will be on the floor for another 15 years.
 
 So go look at your own stack before someone else does.
+
+---
+
+## Resources
+
+**REA itself**
+
+- [morluto/rea on GitHub](https://github.com/morluto/rea) - source, install steps, and a guide per target type
+- [rea.tools](https://rea.tools/) - the docs site, plus a [showcase](https://rea.tools/showcase/) of apps people have taken apart and rebuilt
+- [Firmware analysis](https://github.com/morluto/rea/blob/main/docs/firmware-analysis.md), [packet captures](https://github.com/morluto/rea/blob/main/docs/pcap-analysis.md), and [.NET assemblies](https://github.com/morluto/rea/blob/main/docs/managed-code-analysis.md) - the three guides closest to what runs in a plant
+- [rea-agents on npm](https://www.npmjs.com/package/rea-agents) - the package you actually install
+
+**Watch people use it**
+
+- [REA: Reverse Engineer Anything Tutorial with Hands-on Demo](https://www.youtube.com/watch?v=xm92KJ7ipqc) - Fahd Mirza
+- [I Tested The Viral Reverse Engineer Anything GitHub Skill (Step By Step Tutorial)](https://www.youtube.com/watch?v=YJI_94GK-Bw) - Darsh Jain
+- [Reverse Engineer Anything with REA - AI Agent RE Toolkit](https://www.youtube.com/watch?v=RtFYGM1wpOY) - CLI Stack
+- [REA is the Most Useless Thing I've Ever Tried](https://www.youtube.com/watch?v=n9QWe9tyYhE) - AISeeKing, for the skeptical take
+
+**OT security references**
+
+- [Ghidra](https://ghidra-sre.org/) - the free reverse engineering suite REA can drive for native binaries
+- [NIST SP 800-82r3, Guide to Operational Technology Security](https://csrc.nist.gov/pubs/sp/800/82/r3/final)
+- [ISA/IEC 62443 series of standards](https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards)
+- [CISA: Industrial Control Systems](https://www.cisa.gov/topics/industrial-control-systems) - advisories and guidance
 
 Cheers 🥃
