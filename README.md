@@ -175,7 +175,9 @@ Use the actual post URL and publication date. Crossposts appear on the home page
 **Continuous Deployment**
 Pull requests run `.github/workflows/check.yml` to validate tests, the build, and publishable file types before review.
 
-Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages with `cloudflare/wrangler-action`. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → refresh public GitHub stats → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages → verify `patrickmannion.dev`. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+
+`patrickmannion.dev` is attached to the `patrickmannion` Pages project and receives its `main` production deployments. The build stamps every HTML page with `DEPLOY_REVISION`, set to the workflow's commit SHA. After publishing, `scripts/verify-production.mjs` checks that the custom domain's homepage and `/work/` serve that revision, and that the site CSS, main JavaScript, graph, and 3D scripts match this build. The check uses the custom domain directly, rejects redirects and wrong content types, and retries up to 12 times for propagation. A stale or unreachable domain fails the workflow even if the upload succeeded.
 
 The repository’s encrypted Actions secrets `CLOUDFLARE_API_TOKEN` (scoped to Cloudflare Pages edit) and `CLOUDFLARE_ACCOUNT_ID` supply authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
 
@@ -183,13 +185,14 @@ The repository’s encrypted Actions secrets `CLOUDFLARE_API_TOKEN` (scoped to C
 
 Check runs at https://github.com/TheThoughtagen/blog/actions. If a run fails, fix the error and rerun it from GitHub Actions or push a correction to `main`. If replacing an old deployment, rerun the latest workflow rather than an older commit’s run.
 
-For a manual deployment with a locally authenticated Wrangler (`npx wrangler login`):
+For a manual deployment with a locally authenticated Wrangler (`npx wrangler login`), set `DEPLOY_REVISION` to the full commit SHA being published, then run:
 
 ```sh
 npm test
 npm run build
 node scripts/check-dist.mjs
 npx wrangler pages deploy dist --project-name=patrickmannion --branch=main
+node scripts/verify-production.mjs
 ```
 
 Animation browser checks: `playwright-cli -s=welcome run-code --filename=tests/welcome.browser.js` with the preview server running.
