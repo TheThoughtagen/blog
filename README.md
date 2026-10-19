@@ -1,6 +1,6 @@
-# FIELDNOTES
+# Patrick Mannion
 
-A static engineering notebook built from Markdown, with RSS, local search, keyboard navigation, three color themes, and optional public GitHub activity/releases. Requires Node.js 24 or newer.
+A personal portfolio for industrial software, connected plant projects, Ignition tools, and engineering notes. Built from Markdown, with RSS, local search, keyboard navigation, three color themes, and public GitHub activity/releases. Requires Node.js 24 or newer.
 
 Live site: https://patrickmannion.dev/
 
@@ -26,10 +26,45 @@ The build validates configuration/content, replaces `dist/`, copies `public/`, a
 
 The server builds once at startup and serves `http://127.0.0.1:4173`. Override the port with `PORT=4174 node scripts/serve.mjs`. There is no file watcher: rebuild and refresh after edits, or restart the server. Tests use Node's built-in runner and injected fetch fixtures; they do not call GitHub, start a server, or rebuild `dist/`.
 
+**Portfolio And Demos**
+
+The homepage leads with the original customer portal film, followed by visual links into the connected graph, native 3D/history viewer, and Ignition recordings. The bio and writing follow the work. The film loads only on request, and the homepage uses static previews rather than loading the interactive graph or 3D renderer. The 3D preview is captured from the public fictional scene; the terminal preview shows the original CLI recording. The landing film poster is a frame at 18 seconds from the existing portal film. Homepage `j`/`k` shortcuts scroll through these sections.
+
+`/work/` contains the Whiskey House project write-ups, customer portal film, four Forge Cortex walkthroughs, and four Ignition terminal recordings. Edit their copy and links in `content/work.mjs`; `scripts/portfolio.mjs` renders the page and homepage teaser. `content/work-evidence.json` pins the original recordings by SHA-256. The videos use native playback controls and load on request.
+
+The graph has 7,618 nodes and 14,165 relationships connecting equipment, historian tags, documents, MES, CMMS, electrical wiring, and process flow. Its records, properties, and connections are randomized demonstration data. `scripts/randomize-cortex-graph.mjs` enforces the public schema and regenerates this data; the build checks its hashes and graph poster. Do not replace these assets with an operational export.
+
+The 3D demo bundles Forge Cortex's native renderer and generator with a fictional 15-asset, 208-element scene. It links equipment selection to the graph and provides generated live readings and 24-hour history. Vessel fill and temperature colors follow the selected readings; pipe markers show signed flow. Shared headers stay static without direction readings. Pause and reduced motion stop continuous animation.
+
+Native scene changes live in [Forge Cortex PR #48](https://github.com/WhiskeyHouse/forge-cortex/pull/48). To refresh the vendored renderer and generated scene from that checkout, use its supported Node.js 22 runtime:
+
+```sh
+node scripts/import-cortex-scene.mjs /path/to/forge-cortex/web
+```
+
+The importer requires a clean `web` checkout and complete bundled dependency licenses. It records the source commit, source hashes, bundle licenses, and artifact hashes in `content/cortex-scene.json`. Regeneration needs that checkout's installed frontend dependencies; the normal site build uses the checked-in artifacts.
+
+With the preview server running, the portfolio browser checks follow the existing Playwright CLI workflow:
+
+```sh
+playwright-cli -s=portfolio open http://127.0.0.1:4173/work/ --browser=chrome
+playwright-cli -s=portfolio run-code --filename=tests/landing.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/portfolio-shell.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/portfolio.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/portfolio-regressions.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/cortex-graph.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/cortex-scene.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/cortex-process.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/keyboard-scroll.browser.js
+playwright-cli -s=portfolio close
+```
+
+On Work & demos, `j` and `k` scroll through the long page. The section links jump directly to the graph, 3D view, portal, and recordings. Search includes project destinations and retains the existing Ignition documentation results.
+
 **Configuration**
 Edit `site.config.mjs`:
 
-- `name`, `author`, and `description`: notebook branding, article byline, and metadata. The author is Patrick Mannion. `bio.short` appears in the author card and About header; `bio.paragraphs` holds the longer bio.
+- `name`, `author`, and `description`: site branding, article byline, and metadata. The site name and author are Patrick Mannion. `bio.short` appears in the author card and About header; `bio.paragraphs` holds the longer bio.
 - `siteUrl`: public origin, such as `https://notes.example.com/`, with no subpath. The build-time `SITE_URL` environment variable overrides it. Set it for canonical/OG URLs, absolute RSS links, and the sitemap. Without it, previews omit canonical URLs and the sitemap and use relative RSS identifiers.
 - `github.username`: GitHub username only, not a profile URL. Activity includes commits, PRs, reviews, comments, stars, forks, and other supported public events across repositories. Home shows five events; Lab shows fifteen from the latest 100 available events. This is GitHub's recent event window, not an all-time archive. No token is shipped to visitors.
 - `github.repositories`: up to six `owner/repo` strings, for example `['example-owner/project']`, not repository URLs. These drive releases independently of the username. With only a username, the deployment discovers all owned public repositories and paginates their published releases; older releases are included. The Lab also displays the latest 30 public commits found by GitHub commit search across repositories, separately from stars and other activity. Empty settings show an unconfigured state.
@@ -107,7 +142,7 @@ Put images and other referenced files inside the same post directory, convention
 
 Drafts may remain under `content/posts/` for local editing. A post with `draft: true` is excluded from every public artifact: HTML, exact Markdown source, copied images, tag archives, search, RSS, and the sitemap. Malformed YAML still stops the build because the loader cannot safely establish draft status. Published posts must pass all schema, renderer, tag, heading, and asset checks. Diagnostics identify the post slug, validation stage, diagnostic code, and message.
 
-At most one published post may set `featured: true`; multiple explicit selections stop the build. If none is selected, the newest published post becomes featured, with the slug used as the deterministic tie-breaker for equal dates. With no published posts, the site intentionally builds the five core pages and an empty notebook state, plus empty search/RSS note collections. It does not create placeholder articles.
+At most one published post may set `featured: true`; multiple explicit selections stop the build. If none is selected, the newest published post becomes featured, with the slug used as the deterministic tie-breaker for equal dates. With no published posts, the site builds its core pages, including the portfolio and contact card, with an empty notebook state and empty search/RSS note collections. It does not create placeholder articles.
 
 The generated `/notes/<slug>/index.md` is an exact copy of the authored source. Article pages link to that raw source for opening or downloading, and the Copy Markdown control copies the same bytes represented as text.
 
@@ -141,7 +176,11 @@ The home and Lab pages include a lazy-loaded official X timeline with a permanen
 Use the actual post URL and publication date. Crossposts appear on the home page and in search; RSS contains local articles only. Rebuild after configuration or content changes.
 
 **Continuous Deployment**
-Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages with `cloudflare/wrangler-action`. A daily scheduled run at 13:17 UTC (7:17 MDT / 6:17 MST) rebuilds `main` so scheduled posts go live on their date without a push; it can also be started by hand from the Actions tab. GitHub disables scheduled workflows in public repositories after 60 days without repository activity, so check the workflow is still enabled before scheduling a post further out than that. Scheduled posts are kept off the site, not secret: their Markdown is readable in this public repository once merged. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+Pull requests run `.github/workflows/check.yml` to validate tests, the build, and publishable file types before review.
+
+Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → refresh public GitHub stats → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages → verify `patrickmannion.dev`. A daily scheduled run at 13:17 UTC (7:17 MDT / 6:17 MST) rebuilds `main` so scheduled posts go live on their date without a push; it can also be started by hand from the Actions tab. GitHub disables scheduled workflows in public repositories after 60 days without repository activity, so check the workflow is still enabled before scheduling a post further out than that. Scheduled posts are kept off the site, not secret: their Markdown is readable in this public repository once merged. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+
+`patrickmannion.dev` is attached to the `patrickmannion` Pages project and receives its `main` production deployments. The build stamps every HTML page with `DEPLOY_REVISION`, set to the workflow's commit SHA. After publishing, `scripts/verify-production.mjs` checks that the custom domain's homepage and `/work/` serve that revision, and that the site CSS, main JavaScript, graph, and 3D scripts match this build. The check uses the custom domain directly, rejects redirects and wrong content types, and retries up to 12 times for propagation. A stale or unreachable domain fails the workflow even if the upload succeeded.
 
 The repository’s encrypted Actions secrets `CLOUDFLARE_API_TOKEN` (scoped to Cloudflare Pages edit) and `CLOUDFLARE_ACCOUNT_ID` supply authentication only to the publish step. No local `.env`, animation generation credentials, or agent installation is needed on the runner. Official GitHub Actions are pinned to commit SHAs.
 
@@ -149,13 +188,14 @@ The repository’s encrypted Actions secrets `CLOUDFLARE_API_TOKEN` (scoped to C
 
 Check runs at https://github.com/TheThoughtagen/blog/actions. If a run fails, fix the error and rerun it from GitHub Actions or push a correction to `main`. If replacing an old deployment, rerun the latest workflow rather than an older commit’s run.
 
-For a manual deployment with a locally authenticated Wrangler (`npx wrangler login`):
+For a manual deployment with a locally authenticated Wrangler (`npx wrangler login`), set `DEPLOY_REVISION` to the full commit SHA being published, then run:
 
 ```sh
 npm test
 npm run build
 node scripts/check-dist.mjs
 npx wrangler pages deploy dist --project-name=patrickmannion --branch=main
+node scripts/verify-production.mjs
 ```
 
 Animation browser checks: `playwright-cli -s=welcome run-code --filename=tests/welcome.browser.js` with the preview server running.

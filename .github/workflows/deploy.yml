@@ -35,6 +35,8 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+        env:
+          DEPLOY_REVISION: ${{ github.sha }}
       - name: Refresh public GitHub stats
         run: node scripts/github-stats.mjs
         env:
@@ -47,3 +49,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=patrickmannion --branch=main --commit-dirty=true
+      - name: Verify patrickmannion.dev serves this release
+        timeout-minutes: 5
+        run: node scripts/verify-production.mjs
+        env:
+          DEPLOY_REVISION: ${{ github.sha }}

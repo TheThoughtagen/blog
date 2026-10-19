@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { access, cp, mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { escapeHtml, renderFeed, validateContent, renderEmailSignup, renderChannels, build, loadLocalStylesheetBundle } from '../scripts/build.mjs';
@@ -156,6 +156,20 @@ test('validateContent rejects unsafe or incomplete Ignition tool destinations', 
     config.ignitionTools = [{ ...validTool, ...invalid }];
     assert.throws(() => validateContent(config, notes, links), /Invalid Ignition tool/, JSON.stringify(invalid));
   }
+});
+
+test('deployment builds stamp their revision on every generated page and reject invalid revisions', async t => {
+  const rootDir = await createBuildRoot(), outputDir = join(rootDir, 'site');
+  t.after(() => rm(rootDir, { recursive: true, force: true }));
+  const deploymentRevision = 'a'.repeat(40);
+  await build({ rootDir, contentDir: join(rootDir, 'missing-content'), outputDir, deploymentRevision });
+  const pages = (await readdir(outputDir, { recursive: true })).filter(path => path.endsWith('.html'));
+  assert.equal(pages.length, 8);
+  for (const path of pages) {
+    const html = await readFile(join(outputDir, path), 'utf8');
+    assert.ok(html.includes(`<meta name="deployment-revision" content="${deploymentRevision}">`), path);
+  }
+  await assert.rejects(build({ rootDir, contentDir: join(rootDir, 'missing-content'), outputDir, deploymentRevision: '<invalid>' }), /full Git commit SHA/);
 });
 
 test('build publishes five safe Ignition tool cards and indexes their documentation for command search', async () => {
@@ -564,7 +578,7 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   const feed = await readFile(join(outputDir, 'feed.xml'), 'utf8');
   const sitemap = await readFile(join(outputDir, 'sitemap.xml'), 'utf8');
   const data = JSON.parse(await readFile(join(outputDir, 'assets/data.json'), 'utf8'));
-  assert.match(home, /no published field notes yet/i);
+  assert.match(home, /no published notes yet/i);
   assert.match(home, /class="author-portrait card-portrait"/);
   assert.match(home, /<img class="card-headshot" src="\/assets\/patrick-mannion-headshot\.png"/);
   assert.match(about, /class="about-portrait card-portrait"/);
@@ -575,7 +589,7 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/card\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/card\/qr\/<\/loc>/);
   assert.match(lab, /Ignition tools/);
-  assert.match(about, /About Patrick/);
+  assert.match(about, /<title>About \| Patrick Mannion<\/title>/);
   assert.match(connect, /Say hello/);
   assert.match(card, /GitHub @TheThoughtagen/);
   assert.ok(card.indexOf('Download vCard') < card.indexOf('GitHub @TheThoughtagen'), 'vCard download is the first primary card CTA');
@@ -808,8 +822,8 @@ test('unconfigured booking and email never collect information or claim success'
   const { config } = fixture();
   const markup = renderChannels(config);
   assert.match(markup, /Scheduling opens soon/);
-  assert.match(markup, /Email subscriptions are not open yet/);
-  assert.match(markup, /type="email" disabled/);
+  assert.match(markup, /Email updates aren’t set up yet/);
+  assert.doesNotMatch(markup, /type="email"/);
   assert.doesNotMatch(markup, /<form|action=|mailto:/);
   assert.match(markup, /href="\/feed.xml"/);
 });

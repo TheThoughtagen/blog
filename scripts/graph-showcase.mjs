@@ -1,0 +1,29 @@
+import info from '../content/cortex-graph.json' with { type: 'json' };
+import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { assertRandomizedGraph } from './randomize-cortex-graph.mjs';
+import { renderGraphPoster } from './graph-poster.mjs';
+import { kinds } from '../public/assets/graph/model.js';
+
+const number = value => value.toLocaleString('en');
+
+export async function validateCortexGraph() {
+  const json = await readFile(new URL('../public/assets/graph/cortex.json', import.meta.url), 'utf8');
+  const snapshot = JSON.parse(json);
+  assertRandomizedGraph(snapshot);
+  const poster = await readFile(new URL('../public/assets/graph/cortex.svg', import.meta.url), 'utf8');
+  const sha = value => createHash('sha256').update(value).digest('hex');
+  if (info.randomized !== true || sha(json) !== info.snapshotSha256 || sha(poster) !== info.posterSha256
+    || poster !== renderGraphPoster(snapshot)) throw new Error('Portfolio graph assets must match the randomized data.');
+}
+
+export function renderCortexGraph() {
+  if (info.randomized !== true) throw new Error('Only randomized graph data can enter the portfolio.');
+  return `<section class="cortex-showcase" id="cortex-graph" data-cortex-showcase data-graph-src="/assets/graph/cortex.json?v=${info.snapshotSha256.slice(0, 12)}" aria-labelledby="cortex-title">
+    <header class="cortex-heading"><div><div class="overline">FORGE CORTEX / RANDOMIZED DATA</div><h2 id="cortex-title">The plant, connected<span class="accent">.</span></h2><p>Start with a production order, follow its material lots to equipment, then inspect maintenance, electrical circuits, and process connections around the same asset. Typed relationships make those paths explicit. This example uses randomized records and connections.</p></div><div class="cortex-totals" aria-label="Graph size"><div><strong>${number(info.nodeCount)}</strong><span>nodes</span></div><div><strong>${number(info.edgeCount)}</strong><span>relationships</span></div></div></header>
+    <div class="cortex-toolbar"><div class="cortex-search"><label class="overline" for="cortex-search">FIND A RECORD</label><input id="cortex-search" type="search" placeholder="Order, lot, equipment, or wire…" autocomplete="off" spellcheck="false" aria-describedby="cortex-help" data-cortex-search data-cortex-control disabled><ul class="cortex-results" data-cortex-results hidden aria-label="Matching graph records"></ul></div><fieldset class="cortex-layers"><legend>Graph layers</legend>${Object.entries(kinds).map(([kind, value]) => [kind, value.label]).map(([kind, label]) => `<label><input type="checkbox" checked disabled data-cortex-kind="${kind}" data-cortex-control><i class="cortex-key ${kind}" aria-hidden="true"></i>${label}<span>${number(info.counts[kind])}</span></label>`).join('')}<button class="cortex-workflow-toggle" type="button" data-cortex-workflows data-cortex-control disabled>Connected workflows &#8599;</button></fieldset></div>
+    <div class="cortex-stage" data-cortex-stage><img class="cortex-poster" src="/assets/graph/cortex.svg?v=${info.posterSha256.slice(0, 12)}" width="2000" height="1100" alt="Randomized Forge Cortex portfolio graph: ${number(info.nodeCount)} nodes joined by ${number(info.edgeCount)} relationships. Equipment connects to signals, engineering records, MES, CMMS, electrical wiring, and process paths."><div class="cortex-canvas" data-cortex-canvas role="img" aria-label="Interactive Forge Cortex graph with randomized demo data. Use the record search and layer controls to explore with a keyboard."></div><p class="cortex-empty">Choose a layer to show its records.</p><div class="cortex-actions"><button type="button" data-cortex-zoom-in data-cortex-control disabled aria-label="Zoom in">+</button><button type="button" data-cortex-zoom-out data-cortex-control disabled aria-label="Zoom out">−</button><button type="button" data-cortex-reset data-cortex-control disabled>Reset view</button><button type="button" data-cortex-fullscreen data-cortex-control disabled aria-pressed="false">Fullscreen</button></div><aside class="cortex-inspector" data-cortex-inspector hidden aria-label="Selected graph record" aria-live="polite"><button class="cortex-close" type="button" data-cortex-close aria-label="Close record details">×</button><div class="overline" data-cortex-node-type></div><h3 data-cortex-node-name></h3><button class="cortex-model-link" type="button" data-cortex-model hidden>View equipment in 3D &#8599;</button><div class="cortex-properties-heading"><span class="overline">KEY PROPERTIES</span><span class="cortex-demo-badge">DEMO VALUES</span></div><dl class="cortex-properties" data-cortex-properties></dl><details class="cortex-metadata" data-cortex-metadata><summary>Record metadata</summary><p class="cortex-node-path" data-cortex-node-path></p><dl><dt>Source</dt><dd data-cortex-node-source></dd></dl></details><p class="cortex-connections" data-cortex-connections></p><ul class="cortex-relations" data-cortex-relations></ul><div class="overline">CONNECTED RECORDS</div><select class="cortex-neighbor-kind" data-cortex-neighbor-kind aria-label="Filter connected records by type"></select><div class="cortex-neighbors" data-cortex-neighbors></div><button class="cortex-more-neighbors" type="button" data-cortex-more-neighbors hidden>Show more</button></aside><div class="cortex-canvas-status" data-cortex-visible>${number(info.nodeCount)} nodes · ${number(info.edgeCount)} relationships visible</div></div>
+    <footer class="cortex-caption"><p id="cortex-help" data-cortex-status>Randomized demo data. The interactive graph loads as it comes into view.</p><span>RANDOMIZED DEMO / NO LIVE PLANT DATA</span><a href="/assets/graph/cortex.svg?v=${info.posterSha256.slice(0, 12)}" target="_blank" rel="noopener noreferrer">Open graph image &#8599;</a></footer>
+    <script type="module" src="/assets/cortex-graph.js"></script>
+  </section>`;
+}

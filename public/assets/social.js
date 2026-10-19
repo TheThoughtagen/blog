@@ -49,7 +49,7 @@ for (const host of document.querySelectorAll('[data-github-stats]')) {
       item.append(term, value, note); headline.append(item);
     }
     const metrics = document.createElement('dl'); metrics.className = 'work-metrics';
-    for (const [label, count] of [['Public commits', stats.commits], ['Public reviews', stats.reviews], ['Public issues opened', stats.issues], ['Public repos · now', stats.repositories], ['Followers · now', stats.followers]]) {
+    for (const [label, count] of [['Public commits', stats.commits], ['Public reviews', stats.reviews], ['Public issues opened', stats.issues], ['Public repos · now', stats.repositories], ['Followers · now', stats.followers]].filter(([, count]) => count > 0)) {
       const item = document.createElement('div');
       const term = document.createElement('dt'); term.textContent = label;
       const value = document.createElement('dd'); value.textContent = count.toLocaleString();

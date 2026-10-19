@@ -1,0 +1,96 @@
+{
+  "source": "https://github.com/WhiskeyHouse/forge-cortex",
+  "commit": "2c4129c81fad6e8c873925f3e07f78cf647ba113",
+  "fictional": true,
+  "generator": "cortex-scene-gen/0.1.0; templates/0.1.0 [box@0.1.0,centrifugal_pump@0.1.0,column@0.1.0,horizontal_vessel@0.1.0,plate_hx@0.1.0,shell_tube_hx@0.1.0,side_agitator@0.1.0,slab@0.1.0,top_agitator@0.1.0,vertical_vessel@0.1.0]; three/r186; round-pipe/0.1.0; process-visuals/0.1.0",
+  "files": [
+    {
+      "path": "web/components/plant3d/scene-canvas.tsx",
+      "sha256": "819c3fb63c84ff9c47f4ae2ce72e46cd7764bd48c8905a9143561caba903b9a7"
+    },
+    {
+      "path": "web/components/plant3d/process-flow.tsx",
+      "sha256": "50eec2a099b6f37f073d61d58398f85541f660e24b7e1c31990aedcd84b30c00"
+    },
+    {
+      "path": "web/lib/scene/process-values.ts",
+      "sha256": "c9aa5aba78c20292a74b72a71b430743c4210be4fd430622afa09025b6c379cc"
+    },
+    {
+      "path": "web/lib/scene/process-material.ts",
+      "sha256": "9739d4a62249af8edb7831dedcf3fca383daf514c4aee36f512897efc206bf89"
+    },
+    {
+      "path": "web/lib/scene/process-metadata.ts",
+      "sha256": "561de0364fcf179887bd74097bcadb9d33939b3679689857141b39d942204686"
+    },
+    {
+      "path": "web/lib/scene/generate.ts",
+      "sha256": "4590bc13a1a77b005d982cc8ebbab77eb0c2f3db9b9be9b6a3a74d611a2f89ef"
+    },
+    {
+      "path": "web/lib/scene/pipe.ts",
+      "sha256": "7e01ee69e70a663088cd2bc6c1092b3b8e863c6297318a2d4b707e87fd835de3"
+    },
+    {
+      "path": "web/lib/scene/camera-fit.ts",
+      "sha256": "89d363bad1a1f18a8e63713d84ad1982d448a078ac55dc53b0767dbcc4caf995"
+    },
+    {
+      "path": "web/lib/scene/gltf.ts",
+      "sha256": "5b6971ffcfe084e43574b773ab79960d0ee58e08022aa68e272550e26b515460"
+    },
+    {
+      "path": "web/lib/scene/node-shim.ts",
+      "sha256": "ca02d8310fe9c486dd26cd0d9390d9ddcde8fdf3eaecd9d139ef5ddf27e9dcef"
+    },
+    {
+      "path": "web/lib/scene/templates.ts",
+      "sha256": "1b3c53f966aa4dc754db6458afc523b93ab626c2ee4e794b2dd9140b8a3b8b8e"
+    },
+    {
+      "path": "web/lib/scene/pick.ts",
+      "sha256": "02ec6a28640e276286a64ed7f6778e649566137a58388712002864ee83c2319c"
+    },
+    {
+      "path": "web/lib/scene/tint.ts",
+      "sha256": "8c86689b589eec52f6731bddccadcd24b736b634a5de1e84053d94699d34afe6"
+    },
+    {
+      "path": "web/lib/scene/reference.ts",
+      "sha256": "d6b157acf815a66c8fa71cc0fded6ff04a9e06ad9bcd5507810d8a83ee69a82c"
+    },
+    {
+      "path": "web/lib/scene/fidelity.ts",
+      "sha256": "ea5222904ae1abe380404d89c2f7cb3a404d476a0b08aa9a4ccabadaad64d7e6"
+    },
+    {
+      "path": "web/lib/scene/sparkline.ts",
+      "sha256": "93d9b3f387729de6a068ae02f9f583ae04cde499b1acdb1d86894d2e5324a8c1"
+    }
+  ],
+  "graphInventorySha256": "1fa73a79e5e3cef499b109c21b5bf4502b0580d80b805038058cad20a1ceb5b0",
+  "modelSha256": "5bea43f1825ebb166784b3683dffb2a6bc48aef6fad0aa0d67be34205b6cf216",
+  "specSha256": "c9540db6133e7431dd49b80db991b6036d81f967d26ab71527ca10fa334b21de",
+  "vendorSha256": "2e657c6be76bb02ca3d906a843057048019b370f443bda4bff40ffbaedfb7f7f",
+  "assets": 15,
+  "elements": 208,
+  "libraries": [
+    "@babel/runtime@7.29.10",
+    "@react-three/drei@10.7.8",
+    "@react-three/fiber@9.7.0",
+    "fflate@0.6.11",
+    "its-fine@2.1.1",
+    "potpack@1.0.2",
+    "react-dom@19.0.0",
+    "react-use-measure@2.1.7",
+    "react@19.0.0",
+    "scheduler@0.25.0",
+    "scheduler@0.27.0",
+    "suspend-react@0.1.3",
+    "three-stdlib@2.36.1",
+    "three@0.186.1",
+    "use-sync-external-store@1.7.0",
+    "zustand@5.0.15"
+  ]
+}

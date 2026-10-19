@@ -1,0 +1,47 @@
+[
+  {
+    "path": "/assets/recordings/cli.cast",
+    "source": "Existing published cli terminal recording",
+    "sha256": "a3ac9ce4224d553bc771ae8c75bf45fe263a04eba01f363e72b8919de6f81098"
+  },
+  {
+    "path": "/assets/recordings/tui.cast",
+    "source": "Existing published tui terminal recording",
+    "sha256": "daed2cf8f542ae4eb3890cdf3ac7965dd6b741f1bd2523196052061fcdc132e7"
+  },
+  {
+    "path": "/assets/recordings/pi.cast",
+    "source": "Existing published pi terminal recording",
+    "sha256": "c6bd47edfb1506660717d71cbab4684fa765827da00ddf765ae5c88540c31e93"
+  },
+  {
+    "path": "/assets/recordings/nvim.cast",
+    "source": "Existing published nvim terminal recording",
+    "sha256": "48b7a98d9a336e6c859c811c1b4219b3cc4e2f475d84b04de2f9c478001003e2"
+  },
+  {
+    "path": "/assets/work/workbench-explorer.mp4",
+    "source": "Forge Cortex docs/media/workbench-explorer.mp4",
+    "sha256": "bbe59166abf1e725d71fd27328b570b813edbe89a2eaa368748d267809c341fc"
+  },
+  {
+    "path": "/assets/work/workbench-authoring.mp4",
+    "source": "Forge Cortex docs/media/workbench-authoring.mp4",
+    "sha256": "0ab07093b132c1dfae7a4e2d4c4dc0952554a3988a6ad7d3721028129fbce553"
+  },
+  {
+    "path": "/assets/work/workbench-design.mp4",
+    "source": "Forge Cortex docs/media/workbench-design.mp4",
+    "sha256": "872a93c83366e5c456309b2da703d0f79ae440da84ccd8f7861c3ad63a149d71"
+  },
+  {
+    "path": "/assets/work/workbench-agents.mp4",
+    "source": "Forge Cortex docs/media/workbench-agents.mp4",
+    "sha256": "7c30dbe6653a5325944fc5162034f48b75d96987b9429f27727b9e7807b1d189"
+  },
+  {
+    "path": "/assets/work/customer-portal.mp4",
+    "source": "Existing customer portal launch film; portal UI uses demonstration data",
+    "sha256": "187d443eb82da837a2980b9d558c00a0d70c36b908ee5614226770f746b270e6"
+  }
+]

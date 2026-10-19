@@ -20,6 +20,7 @@ async (page) => {
   for (const theme of ['amber', 'paper', 'green']) {
     await page.locator('[data-theme-toggle]').click();
     const suffix = theme === 'green' ? '' : `-${theme}`;
+    await page.locator('[data-welcome]').scrollIntoViewIfNeeded();
     await page.waitForFunction(suffix => { const v = document.querySelector('.hero-artwork video'); return v.getAttribute('src') === `/assets/patrick-welcome${suffix}.mp4` && v.currentTime > 0; }, suffix);
     check(true, `${theme} homepage video plays`);
     await page.locator('[data-reboot]').click();
