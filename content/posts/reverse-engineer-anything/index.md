@@ -9,6 +9,7 @@ tags:
   - OT
   - Reverse Engineering
   - Industrial Software
+  - Industry 4.0
 draft: false
 ---
 
@@ -46,6 +47,8 @@ That's... most of OT. A lot of it ships the same binary to every customer, a lot
 
 Then layer on how plants actually run. Production is king. Downtime is measured in dollars per minute, so patches wait for a planned outage - which might be quarterly, annual, or "when the line goes down anyway." Plenty of plants run versions that are years past end-of-support because upgrading means requalifying the line. Air gaps that aren't really air gaps. Shared engineering workstations. Remote access that got bolted on in a hurry and never revisited.
 
+Industry 4.0 makes it worse, and it's the part I'm closest to day to day. IT/OT convergence is the whole point of a lot of what we're building: MES talking to ERP, historians replicating to the cloud, MQTT brokers, analytics platforms, vendor remote support, customer portals pulling live production data. Every one of those is a hole poked through a boundary. A lot of the equipment on the other side was designed, risk-assessed, and scoped out of pen tests as if that boundary had no holes. "It's on the OT network" and "that's air-gapped" still show up as reasons something is out of scope, long after the network diagram stopped being true.
+
 In IT, the gap between "vulnerability found" and "patch deployed" is days to weeks. In a plant it can be months to years. Agentic reverse engineering shrinks the attacker's side of that gap. Nothing about it shrinks ours.
 
 ---
@@ -57,6 +60,7 @@ I'm not going to pretend the answer is "ban the tool." It's MIT licensed with hu
 - **Know what you're running.** What does that HMI client actually talk to? What's in that firmware image? What libraries are bundled, and at what versions? If an attacker can answer those in an afternoon, you should be able to as well.
 - **Read your own network.** Take a capture off your control network and have an agent summarize what's talking to what. I'd bet most plants have at least one surprise in there.
 - **Ask your vendors better questions.** Is the protocol authenticated? Are credentials compiled in? Is firmware signed? Where's the SBOM? These used to be nice-to-haves. Now an attacker can answer them for you if your vendor won't.
+- **Re-check your boundaries.** List every connection between IT and OT and what sits on each end. If a system is out of scope because it's "air-gapped," prove the air gap.
 - **Stop counting on obscurity.** Segmentation, least-privilege remote access, a real asset inventory, monitoring that would notice something weird. The boring fundamentals don't care how the attacker found the bug.
 
 Keep it legal. Reverse engineering vendor software can run into EULA terms, so loop in whoever owns those agreements before you go poking.
