@@ -147,7 +147,7 @@ if (root) {
             h('div', { className: 'plant-modes', role: 'group', 'aria-label': 'Telemetry mode' },
               h('button', { type: 'button', onClick: live, 'aria-pressed': mode === 'live', 'data-scene-live': '' }, 'Live demo'),
               h('button', { type: 'button', onClick: history, 'aria-pressed': mode === 'history', 'data-scene-history': '' }, 'History')),
-            h('button', { type: 'button', disabled: mode !== 'history' || !selected, onClick: () => { if (offset >= 1440) setOffset(0); setPlaying(!playing); }, 'data-scene-play': '', 'aria-pressed': playing }, playing ? 'Pause playback' : 'Play history'),
+            h('button', { type: 'button', disabled: mode !== 'history' || (!selected && !playing), onClick: () => { if (offset >= 1440) setOffset(0); setPlaying(!playing); }, 'data-scene-play': '', 'aria-pressed': playing }, playing ? 'Pause playback' : 'Play history'),
             h('time', { dateTime: new Date(time).toISOString(), 'data-scene-time': '' }, `${new Date(time).toLocaleDateString('en', { month: 'short', day: 'numeric' })} · ${clock(time)}`)),
           h('div', { className: 'plant-trend-header' }, h('span', null, active ? `${active.description} · 24 hours` : '24-hour equipment history'), plot && h('span', null, `${formatValue(plot.min, active.unit)} — ${formatValue(plot.max, active.unit)}`)),
           h('svg', { className: 'plant-trend', viewBox: '0 0 640 100', preserveAspectRatio: 'none', role: 'img', 'aria-label': active ? `${active.description} history with selected time cursor` : 'Select equipment to show history', 'data-scene-trend': '' },
@@ -162,5 +162,5 @@ if (root) {
   }
   const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) { observer.disconnect(); start(); } }, { rootMargin: '250px' });
   observer.observe(root);
-  window.addEventListener('pagehide', () => { observer.disconnect(); appRoot?.unmount(); window.removeEventListener('cortex:graph-selection', remember); }, { once: true });
+  window.addEventListener('pagehide', event => { if (event.persisted) return; observer.disconnect(); appRoot?.unmount(); window.removeEventListener('cortex:graph-selection', remember); });
 }

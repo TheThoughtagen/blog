@@ -12,7 +12,7 @@ async (page) => {
   check(await scene.getAttribute('data-scene-assets') === '15', 'Native Cortex GLB renderer loads all 15 equipment assets');
   check(await page.locator('[data-scene-canvas] canvas').count() === 1, 'Cortex renders the generated model in WebGL');
   check((await scene.textContent()).includes('GENERATED TELEMETRY'), 'Model and readings are clearly identified as demonstration data');
-  await scene.screenshot({ path: '/private/tmp/cortex-plant3d-overview.png' });
+  await scene.screenshot({ path: 'test-results/cortex-plant3d-overview.png' });
   const select = page.locator('[data-scene-equipment]');
   const snapshot = await (await page.request.get('http://127.0.0.1:4173/assets/graph/cortex.json')).json();
   const unit = label => snapshot.nodes.find(node => node.label === label).id;
@@ -34,7 +34,7 @@ async (page) => {
   check(Date.parse(newest) - Date.parse(oldest) === 86400000, 'The scrubber spans a full 24 hours');
   await slider.press('ArrowLeft');
   const cursor = await scene.getAttribute('data-read-at');
-  await scene.screenshot({ path: '/private/tmp/cortex-plant3d-history.png' });
+  await scene.screenshot({ path: 'test-results/cortex-plant3d-history.png' });
   check(Date.parse(newest) - Date.parse(cursor) === 60000, 'Keyboard scrubbing advances by one minute');
   const firstSignals = await page.locator('[data-scene-readings] small').allTextContents();
   await select.selectOption(unit('Unit 02'));
@@ -50,7 +50,7 @@ async (page) => {
   check(await scene.getAttribute('data-scene-mode') === 'live', 'Returning to live restores current readings');
   await page.locator('[data-scene-fidelity]').check();
   check(await select.inputValue() === unit('Unit 02'), 'Fidelity coloring preserves the equipment selection');
-  await scene.screenshot({ path: '/private/tmp/cortex-plant3d-readings.png' });
+  await scene.screenshot({ path: 'test-results/cortex-plant3d-readings.png' });
   await page.locator('[data-scene-graph]').click();
   await page.waitForFunction(() => document.querySelector('[data-cortex-node-name]')?.textContent === 'Unit 02');
   check((await page.locator('[data-cortex-properties]').textContent()).includes('Design capacity'), '3D selection opens the same equipment and properties in the graph');
@@ -72,7 +72,7 @@ async (page) => {
       return label && label.left >= frame.left && label.right <= frame.right && label.top >= frame.top && label.bottom <= frame.bottom;
     }, null, { timeout: 5000 });
     check(true, `Model overlay label stays within the ${width}px canvas`);
-    if (width === 320) await scene.screenshot({ path: '/private/tmp/cortex-plant3d-mobile.png' });
+    if (width === 320) await scene.screenshot({ path: 'test-results/cortex-plant3d-mobile.png' });
   }
   check(errors.length === 0, `Model, telemetry, graph links and viewport changes have no page errors: ${errors.join('; ')}`);
   return { passed: checks.length, checks };

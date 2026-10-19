@@ -40,7 +40,7 @@ Native scene changes live in [Forge Cortex PR #48](https://github.com/WhiskeyHou
 node scripts/import-cortex-scene.mjs /path/to/forge-cortex/web
 ```
 
-The importer records the source commit, source hashes, bundle licenses, and artifact hashes in `content/cortex-scene.json`. Regeneration needs that checkout's installed frontend dependencies; the normal site build uses the checked-in artifacts.
+The importer requires a clean `web` checkout and complete bundled dependency licenses. It records the source commit, source hashes, bundle licenses, and artifact hashes in `content/cortex-scene.json`. Regeneration needs that checkout's installed frontend dependencies; the normal site build uses the checked-in artifacts.
 
 With the preview server running, the portfolio browser checks follow the existing Playwright CLI workflow:
 
@@ -48,6 +48,7 @@ With the preview server running, the portfolio browser checks follow the existin
 playwright-cli -s=portfolio open http://127.0.0.1:4173/work/ --browser=chrome
 playwright-cli -s=portfolio run-code --filename=tests/portfolio-shell.browser.js
 playwright-cli -s=portfolio run-code --filename=tests/portfolio.browser.js
+playwright-cli -s=portfolio run-code --filename=tests/portfolio-regressions.browser.js
 playwright-cli -s=portfolio run-code --filename=tests/cortex-graph.browser.js
 playwright-cli -s=portfolio run-code --filename=tests/cortex-scene.browser.js
 playwright-cli -s=portfolio run-code --filename=tests/cortex-process.browser.js

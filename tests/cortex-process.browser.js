@@ -21,7 +21,7 @@ async (page) => {
     await page.waitForFunction(() => document.querySelector('[data-cortex-scene]').dataset.flowPaths === '45');
     check(await root.getAttribute('data-flow-animated') === 'false', 'Reduced motion keeps directional arrows static');
     check((await page.locator('[data-scene-process-legend]').textContent()).includes('0–150 °C'), 'Temperature scale and mapped flow meaning are visible');
-    await root.screenshot({ path: '/private/tmp/cortex-process-overview.png' });
+    await root.screenshot({ path: 'test-results/cortex-process-overview.png' });
 
     await page.locator('[data-scene-equipment]').selectOption({ label: 'Unit 01' });
     await page.locator('[data-scene-history]').click();
@@ -40,7 +40,7 @@ async (page) => {
     await page.locator('[data-scene-scrub]').press('Home');
     check(await page.locator('[data-scene-reading="Level"]').textContent() !== recentLevel, 'Historical scrubbing changes the mapped level reading');
     check(await frame() !== recentCanvas, 'The rendered fill and temperature follow the historical cursor');
-    await root.screenshot({ path: '/private/tmp/cortex-process-vessel.png' });
+    await root.screenshot({ path: 'test-results/cortex-process-vessel.png' });
     await page.locator('[data-scene-show-flow]').uncheck();
     await page.waitForFunction(() => document.querySelector('[data-cortex-scene]').dataset.flowPaths === '0');
     check(true, 'Flow overlays can be hidden without changing vessel telemetry');
@@ -93,7 +93,7 @@ async (page) => {
       check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Process controls and temperature legend fit ${width}px`);
       check(await canvas.isVisible(), `Process vessel view renders at ${width}px`);
     }
-    await root.screenshot({ path: '/private/tmp/cortex-process-mobile.png' });
+    await root.screenshot({ path: 'test-results/cortex-process-mobile.png' });
     check(errors.length === 0, `No shader, WebGL, or page errors: ${errors.join('; ')}`);
     return { passed: checks.length, checks };
   } finally {

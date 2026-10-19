@@ -67,7 +67,7 @@ if (root) {
       li.append(button); results.append(li);
     }
   }
-  function select(id, move = false) {
+  function select(id, move = false, notify = true) {
     selected = id;
     if (!id) {
       inspector.hidden = true;
@@ -106,7 +106,7 @@ if (root) {
     neighborLimit = 12; showNeighbors();
     inspector.hidden = false;
     inspector.scrollTop = 0;
-    if (node.type === 'Unit') window.dispatchEvent(new CustomEvent('cortex:graph-selection', { detail: { id } }));
+    if (notify && node.type === 'Unit') window.dispatchEvent(new CustomEvent('cortex:graph-selection', { detail: { id } }));
     renderer.refresh();
     if (move) {
       const position = renderer.getNodeDisplayData(id);
@@ -115,7 +115,7 @@ if (root) {
   }
   function updateLayers() {
     if (selected && !enabled.has(index.nodes.get(selected).kind)) select(null);
-    else if (selected) select(selected);
+    else if (selected) select(selected, false, false);
     const count = visibleCounts(snapshot, enabled);
     $('[data-cortex-visible]').textContent = `${count.nodes.toLocaleString()} nodes · ${count.edges.toLocaleString()} relationships visible`;
     stage.dataset.empty = String(count.nodes === 0);
@@ -210,8 +210,12 @@ if (root) {
         if (event.key === 'ArrowDown') { event.preventDefault(); results.querySelector('button')?.focus(); }
       });
       $('[data-cortex-close]').addEventListener('click', () => select(null));
-      $('[data-cortex-model]').addEventListener('click', () => {
+      $('[data-cortex-model]').addEventListener('click', async () => {
         if (!selected || index.nodes.get(selected).type !== 'Unit') return;
+        if (document.fullscreenElement === root) {
+          try { await document.exitFullscreen(); }
+          catch { status.textContent = 'Exit fullscreen to view equipment in 3D.'; return; }
+        }
         window.dispatchEvent(new CustomEvent('cortex:scene-select', { detail: { id: selected } }));
         document.querySelector('[data-cortex-scene]')?.scrollIntoView({ block: 'start', behavior: 'instant' });
       });
@@ -232,7 +236,7 @@ if (root) {
         expand.setAttribute('aria-pressed', String(document.fullscreenElement === root));
         if (root.isConnected && stage.clientWidth && stage.clientHeight) renderer?.resize();
       });
-      window.addEventListener('pagehide', () => renderer?.kill(), { once: true });
+      window.addEventListener('pagehide', event => { if (!event.persisted) renderer?.kill(); });
       root.querySelectorAll('[data-cortex-control]').forEach(control => { control.disabled = false; });
       root.dataset.graphReady = 'true';
       canvas.dataset.graphNodes = String(snapshot.nodes.length);
@@ -246,13 +250,13 @@ if (root) {
     }
   }
   function showFromScene(detail) {
-    if (!index) { pendingSelection = detail; start(); return; }
+    if (detail.scroll) root.scrollIntoView({ block: 'start', behavior: 'instant' });
+    if (root.dataset.graphReady !== 'true') { pendingSelection = detail; start(); return; }
     const node = index.nodes.get(detail.id);
     if (!node) return;
     enabled.add(node.kind);
     root.querySelector(`[data-cortex-kind="${node.kind}"]`).checked = true;
     updateLayers(); select(node.id, true);
-    if (detail.scroll) root.scrollIntoView({ block: 'start', behavior: 'instant' });
   }
   window.addEventListener('cortex:graph-select', event => { if (event.detail?.id) showFromScene(event.detail); });
   if ('IntersectionObserver' in window) {

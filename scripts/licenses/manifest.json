@@ -1,0 +1,11 @@
+{
+  "@react-three/fiber@9.7.0": {
+    "files": [
+      {
+        "path": "react-three-fiber-9.7.0/LICENSE",
+        "sha256": "9c35b5de7b7493a707fffe4eb23bd2f7f449153c1911f7c6eefb4e591fd5349a",
+        "source": "https://github.com/pmndrs/react-three-fiber/blob/v9.7.0/LICENSE"
+      }
+    ]
+  }
+}

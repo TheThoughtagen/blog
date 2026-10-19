@@ -22,7 +22,7 @@ The scene bundle records source commit
 including the shared diameter-based default for pipe bend radii. Source
 validation passed all 341 frontend tests and TypeScript checking under Node 22.
 
-Site validation passed all 126 Node tests, the self-contained Markdown browser
+Before the review corrections below, site validation passed all 126 Node tests, the self-contained Markdown browser
 gate, a 16-page/two-note production build, and the distribution file check.
 Another 303 Chromium checks passed: 142 for navigation and the existing site
 pages, 24 for recordings, 54 for the graph, 29 for 3D/history, 23 for rendered
@@ -32,6 +32,48 @@ fidelity view cannot suppress its overlays.
 The combined preview runs at `http://127.0.0.1:4184/`; it has not been deployed.
 
 Earlier entries below describe previous releases and their publication state.
+
+## PR #18 Review Corrections — October 18, 2026
+
+All eight existing PR comments were verified against the branch and addressed.
+The graph and 3D viewer retain their renderers during persisted page lifecycle
+events and still clean up on final unload. Portal, walkthrough, and terminal
+playback coordinate in both directions; video pause handlers also work when
+the terminal library is unavailable. Screenshot output uses `test-results/`.
+
+The scene importer uses a unique directory under `os.tmpdir()` and removes it
+after bundling. It rejects tracked and untracked source changes before writing
+artifacts, including when Git is configured to hide untracked files. Fixture
+tests isolate Git configuration, hooks, and inherited `GIT_*` variables.
+
+The 3D bundle imports only the three Drei helpers used by the native renderer.
+Unused vision/statistics dependencies are excluded, and all 16 remaining
+dependencies have full applicable license text. A missing upstream package
+license uses a version-pinned, hash-checked local copy; unknown missing or
+incomplete license text stops regeneration. The scene was regenerated from
+the clean source commit recorded above under Node 22 using a custom temporary
+directory. The fictional model and scene specification hashes are unchanged.
+
+Claude Code completed a read-only review of `1fe192a` and a follow-up review of
+the fixes. Six confirmed initial findings were corrected: persisted lifecycle
+cleanup, graph filters overriding the 3D overview, history becoming impossible
+to pause from that overview, opening 3D from a fullscreen graph, selection after
+failed graph startup, and the platform-specific importer path. Its mixed
+workflow/layer layout suggestion was left unchanged because no functional
+failure was established; graph relationships and selection remain valid. The
+follow-up found the hidden-untracked-file and fixture-environment issues
+described above, which were corrected and tested.
+
+All 134 Node tests pass, including media coordination, license collection, and
+dirty-source rejection. The importer tests also pass with deliberately injected
+`GIT_DIR` and `GIT_INDEX_FILE` values. The production build generates 16 pages
+and two notes, and the distribution check accepts all 159 files. All 303 existing
+Chromium checks were rerun successfully. Thirteen new regression checks also
+pass, bringing the browser total to 316. These cover graph/3D selection, overview/history
+controls, fullscreen transitions, repeated persisted lifecycle events, final
+cleanup, and failed graph startup. Persisted lifecycle coverage dispatches
+`PageTransitionEvent` events; it does not claim that Chromium selected a real
+history navigation for its back/forward cache.
 
 ## Supplied Original Artwork
 

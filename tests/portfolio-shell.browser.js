@@ -39,8 +39,8 @@ async (page) => {
     check(response.ok() && response.headers()['content-type'].startsWith(mime), `${path} has its media type`);
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.screenshot({ path: '/private/tmp/portfolio-pr-desktop.png' });
+  await page.screenshot({ path: 'test-results/portfolio-pr-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: '/private/tmp/portfolio-pr-mobile.png' });
+  await page.screenshot({ path: 'test-results/portfolio-pr-mobile.png' });
   return { passed: checks.length, checks };
 }

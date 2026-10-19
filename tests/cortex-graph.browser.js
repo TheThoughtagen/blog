@@ -15,7 +15,7 @@ async (page) => {
   const stage = await page.locator('[data-cortex-stage]').boundingBox();
   check(stage.width > 1300 && stage.height > 650, 'Graph is a large, wide centerpiece');
   check(await page.locator('[data-cortex-canvas] canvas').count() >= 3, 'Cortex Sigma engine draws the network');
-  await showcase.screenshot({ path: '/private/tmp/cortex-graph-desktop.png' });
+  await showcase.screenshot({ path: 'test-results/cortex-graph-desktop.png' });
   const search = page.locator('[data-cortex-search]');
   await search.fill('Unit 01');
   await page.locator('[data-cortex-results] button').first().click();
@@ -68,11 +68,11 @@ async (page) => {
   await workOrder.click();
   check((await page.locator('[data-cortex-node-name]').textContent()) === workOrderName, 'Connected records can be followed across domains');
   check((await page.locator('[data-cortex-properties]').textContent()).includes('Priority') && !(await page.locator('[data-cortex-properties]').textContent()).includes('Design capacity'), 'Following a connection replaces the previous node properties');
-  await showcase.screenshot({ path: '/private/tmp/cortex-node-properties-desktop.png' });
+  await showcase.screenshot({ path: 'test-results/cortex-node-properties-desktop.png' });
   await page.locator('[data-cortex-close]').click();
   await search.fill('');
   await page.locator('[data-cortex-workflows]').click();
-  await showcase.screenshot({ path: '/private/tmp/cortex-connected-workflows.png' });
+  await showcase.screenshot({ path: 'test-results/cortex-connected-workflows.png' });
   await page.locator('[data-cortex-reset]').click();
   await search.fill('no-such-record-123');
   check((await page.locator('[data-cortex-results]').textContent()).includes('No matching'), 'Empty search is explicit');
@@ -96,7 +96,7 @@ async (page) => {
     check(await page.locator('[data-cortex-inspector]').isVisible(), `Record details work at ${width}px`);
     check(await page.locator('[data-cortex-properties]').isVisible(), `Key properties are visible at ${width}px`);
     check(await page.locator('[data-cortex-inspector]').evaluate(element => element.scrollWidth <= element.clientWidth), `Property values fit the ${width}px panel`);
-    if (width === 320) await showcase.screenshot({ path: '/private/tmp/cortex-node-properties-mobile.png' });
+    if (width === 320) await showcase.screenshot({ path: 'test-results/cortex-node-properties-mobile.png' });
     await page.locator('[data-cortex-close]').click();
     await search.fill('');
   }
