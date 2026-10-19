@@ -77,6 +77,32 @@
   .portal-feature-film { margin: 0; min-width: 0; border: 1px solid var(--line); background: var(--terminal); }
   .portal-feature-film video { width: 100%; height: auto; aspect-ratio: 16/9; display: block; background: #080f15; }
   .portal-feature-film figcaption { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 13px 16px; font: 8px/1.7 var(--mono); color: var(--subtle); border-top: 1px solid var(--line); }
+  .landing-hero { grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr); gap: 45px; padding-block: 42px 40px; }
+  .landing-hero .hero-copy > p { max-width: 470px; }
+  .landing-hero .hero-actions { flex-wrap: wrap; gap: 16px 24px; }
+  .landing-film { align-self: center; }
+  .landing-film-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); color: var(--accent); font: 8px/1.6 var(--mono); }
+  .landing-film figcaption { display: block; padding: 20px; }
+  .landing-film figcaption strong { display: block; color: var(--text); font: 24px/1.2 var(--sans); letter-spacing: -.035em; }
+  .landing-film figcaption p { color: var(--muted); font: 12px/1.7 var(--sans); margin-top: 8px; }
+  .landing-film figcaption > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 17px; align-items: center; }
+  .landing-film figcaption a { color: var(--accent); font-size: 9px; padding-block: 6px; }
+  .landing-work.work-teaser { display: block; padding: 22px 0 42px; margin: 0; scroll-margin-top: 25px; }
+  .landing-work-heading { display: flex; justify-content: space-between; align-items: end; gap: 25px; margin-bottom: 28px; }
+  .landing-work-heading h2 { font-size: 35px; }
+  .landing-work-heading > a { flex-shrink: 0; color: var(--accent); font: 10px var(--mono); min-height: 36px; }
+  .landing-demo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+  .landing-demo { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line); background: var(--panel); }
+  .landing-demo:hover, .landing-demo:focus-visible { border-color: var(--accent); }
+  .landing-demo-image { aspect-ratio: 16 / 10; overflow: hidden; position: relative; background: #080f15; border-bottom: 1px solid var(--line); }
+  .landing-demo-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .landing-demo-image > span { position: absolute; bottom: 12px; right: 12px; display: grid; place-items: center; width: 32px; height: 32px; color: #b6e889; border: 1px solid #526548; background: #111510; font-size: 19px; }
+  .landing-demo-copy { display: flex; flex-direction: column; flex: 1; padding: 23px; }
+  .landing-demo-copy h3 { font-size: 26px; letter-spacing: -.035em; line-height: 1.2; margin: 14px 0 12px; }
+  .landing-demo-copy p { font-size: 13px; line-height: 1.8; flex: 1; }
+  .landing-demo-action { display: flex; justify-content: space-between; gap: 12px; color: var(--accent); font: 10px var(--mono); margin-top: 22px; padding-top: 15px; border-top: 1px solid var(--line); }
+  .landing-about { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 35px; align-items: center; padding-block: 42px; border-bottom: 1px solid var(--line); }
+  .landing-about > .author-card { margin: 0; padding: 0; border: 0; background: none; }
 }
 
 @layer responsive {
@@ -86,12 +112,31 @@
     .header-tools { margin-left: auto; }
   }
   @media (max-width: 1100px) {
+    .landing-hero { gap: 28px; }
+    .landing-demo-grid { gap: 16px; }
+    .landing-demo-copy { padding: 19px; }
+    .landing-demo-copy h3 { font-size: 23px; }
+    .landing-about { grid-template-columns: minmax(0, 1fr) 220px; gap: 25px; }
     .work-hero { gap: 35px; }
     .work-story { gap: 35px; }
     .work-section .section-aside { display: none; }
     .work-jump { gap: 15px 20px; }
   }
   @media (max-width: 700px) {
+    .landing-hero { grid-template-columns: 1fr; gap: 28px; padding-block: 30px; }
+    .landing-hero .hero-actions { gap: 18px; }
+    .landing-hero .hero-footnote { font-size: 6px; letter-spacing: 0; flex-wrap: wrap; }
+    .landing-film-heading { font-size: 7px; padding: 12px; }
+    .landing-film figcaption { padding: 17px; }
+    .landing-work.work-teaser { padding-block: 20px 30px; }
+    .landing-work-heading { display: block; margin-bottom: 23px; }
+    .landing-work-heading h2 { font-size: 31px; }
+    .landing-work-heading > a { display: inline-flex; margin-top: 18px; }
+    .landing-demo-grid { grid-template-columns: 1fr; gap: 20px; }
+    .landing-demo-copy { padding: 22px; }
+    .landing-demo-copy h3 { font-size: 27px; }
+    .landing-about { grid-template-columns: 1fr; padding-block: 30px; }
+    .landing-about > .hero-artwork { max-width: 320px; }
     .portal-feature { grid-template-columns: 1fr; gap: 25px; padding-block: 28px 35px; }
     .portal-feature h2 { font-size: 34px; }
     .work-video-grid { grid-template-columns: 1fr; gap: 23px; }

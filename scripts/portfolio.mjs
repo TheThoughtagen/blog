@@ -1,5 +1,6 @@
 import { portfolio, demos, workbenchVideos, portalFilm } from '../content/work.mjs';
 import evidence from '../content/work-evidence.json' with { type: 'json' };
+import graphInfo from '../content/cortex-graph.json' with { type: 'json' };
 import { renderCortexGraph } from './graph-showcase.mjs';
 import { renderCortexScene } from './scene-showcase.mjs';
 
@@ -28,7 +29,17 @@ export function validatePortfolio() {
 }
 
 export function renderWorkTeaser() {
-  return `<section class="work-teaser" aria-labelledby="work-teaser-title"><div><div class="overline">BUILT AT THE WORKBENCH</div><h2 id="work-teaser-title">Projects from Whiskey House and Ignition<span class="accent">.</span></h2><p>Explore how production records, warehouse activity, and customer visibility connect at Whiskey House, alongside the Ignition tools I build.</p></div><a class="button primary" href="/work/">Explore work &amp; demos <span aria-hidden="true">&#8594;</span></a></section>`;
+  const cards = [
+    { href: '/work/#cortex-graph', image: `/assets/graph/cortex.svg?v=${graphInfo.posterSha256.slice(0, 12)}`, label: 'INTERACTIVE / RANDOMIZED DATA', title: 'Connected plant graph', description: `Explore ${graphInfo.nodeCount.toLocaleString('en-US')} nodes linking production, maintenance, electrical wiring, and process flow.`, action: 'Explore the graph', alt: 'The randomized connected plant graph with linked operational domains.' },
+    { href: '/work/#plant3d', image: '/assets/work/plant3d-preview.png', label: 'INTERACTIVE / GENERATED READINGS', title: '3D equipment & history', description: 'Select equipment, inspect fill and temperature, and scrub through 24 hours of generated readings.', action: 'Open the 3D demo', alt: 'The native 3D plant viewer showing vessel levels, pipe flow, equipment readings, and history.' },
+    { href: '/work/#demos', image: '/assets/work/ignition-preview.jpg', label: 'RECORDED / ISOLATED GATEWAY', title: 'Ignition tools in use', description: 'Watch gateway checks, tag inspection, and agent workflows in the actual CLI and MCP tools.', action: 'Watch the tool demos', alt: 'An original Ignition CLI recording showing gateway inspection in the terminal.' },
+  ];
+  return `<section class="work-teaser landing-work" id="selected-work" aria-labelledby="work-teaser-title"><div class="landing-work-heading"><div><div class="overline">SELECTED WORK / TRY IT &amp; SEE IT</div><h2 id="work-teaser-title">Explore the work<span class="accent">.</span></h2><p>Open the plant model, follow its connections, or watch the tools in use.</p></div><a class="text-link" href="/work/">All projects &amp; demos <span aria-hidden="true">&#8594;</span></a></div><div class="landing-demo-grid">${cards.map(card => `<a class="landing-demo" href="${card.href}"><div class="landing-demo-image"><img src="${card.image}" width="1200" height="750" alt="${e(card.alt)}" loading="lazy" decoding="async"><span aria-hidden="true">&#8599;</span></div><div class="landing-demo-copy"><div class="work-badge">${e(card.label)}</div><h3>${e(card.title)}</h3><p>${e(card.description)}</p><span class="landing-demo-action">${e(card.action)} <span aria-hidden="true">&#8594;</span></span></div></a>`).join('')}</div></section>`;
+}
+
+export function renderLandingFilm() {
+  const video = mediaUrl(`/assets/work/${portalFilm.file}.mp4`);
+  return `<figure class="portal-feature-film landing-film"><div class="landing-film-heading"><span>WHISKEY HOUSE / CUSTOMER PORTAL</span><span>57 SECOND FILM</span></div><video controls playsinline preload="none" poster="/assets/work/customer-portal-landing.jpg" width="1920" height="1080" aria-label="Whiskey House customer portal launch film"><source src="${video}" type="video/mp4"><a href="${video}">Watch the customer portal launch film</a></video><figcaption><strong>From plant floor to customer.</strong><p>Customer-scoped production, inventory, and barrel traceability.</p><div><span>RECORDED / DEMONSTRATION DATA</span><a href="/work/#customer-portal">See how the systems connect <span aria-hidden="true">&#8594;</span></a></div></figcaption></figure>`;
 }
 
 function renderWorkbenchVideos() {

@@ -290,7 +290,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === '/') { event.preventDefault(); openSearch(); return; }
   if (event.key === '?') { event.preventDefault(); openDialog(helpDialog); return; }
   if (event.key === ':') { event.preventDefault(); openSearch(':'); return; }
-  if ((event.key === 'j' || event.key === 'k') && document.body.dataset.page === 'work') {
+  if ((event.key === 'j' || event.key === 'k') && ['home', 'work'].includes(document.body.dataset.page)) {
     event.preventDefault();
     window.scrollBy({ top: event.key === 'j' ? 80 : -80, behavior: 'instant' });
   } else if ((event.key === 'j' || event.key === 'k') && document.body.dataset.page === 'article') {
