@@ -39,7 +39,7 @@ One paid render, about $0.49 at the advertised rate, and it was good enough on t
 
 ![Ten frames sampled from the Kling render, showing the walk, typing, and thumbs-up](images/kling-walk-contact-sheet.jpg "The render, two frames per second")
 
-The part I didn't expect: the agent wrote the brief like a spec. Inputs, render targets, a negative prompt, and a checklist for reviewing the result (watch the hands, check the cap lettering, make sure he actually walks instead of sliding). That's the same thing I'd want from a person doing the work.
+I didn't expect the agent to write the brief like a spec. Inputs, render targets, a negative prompt, and a checklist for reviewing the result (watch the hands, check the cap lettering, make sure he actually walks instead of sliding). That's the same thing I'd want from a person doing the work.
 
 ## Markdown, with guardrails
 
@@ -51,9 +51,9 @@ That strictness is what makes "a few prompts" workable. There are over a hundred
 
 Cursor's background agents built the digital contact card - a vCard download, a themed QR code page for conferences, and a CRT-filtered headshot - across a handful of small pull requests, each with screenshots attached for review.
 
-## This week, with Claude Code
+## Getting ready for ICC, with Claude Code
 
-Getting ready for the ICC debrief, Claude Code:
+For the ICC debrief, Claude Code:
 
 - Took about 40 phone photos down to 11, resized them, and stripped the GPS data before anything got committed.
 - Added the "Book a call" button to the header and fixed the divider styling.

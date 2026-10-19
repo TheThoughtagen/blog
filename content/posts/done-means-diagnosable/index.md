@@ -32,7 +32,7 @@ That usually means answering a small set of boring questions:
 | What happened when it failed? | The exact boundary that failed, the payload class, retry state, and the next safe action. |
 | Who owns the next move? | A runbook note or alert route that names the team, not just the server. |
 
-None of this is glamorous. It is the work that keeps a fix from depending on the one person who remembers where the logs are.
+This is boring work, and it keeps a fix from depending on the one person who remembers where the logs are.
 
 ## What I can show publicly
 
