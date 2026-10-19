@@ -21,9 +21,10 @@
 .boot-topline, .boot-bottomline { display: flex; justify-content: space-between; gap: 15px; color: var(--muted); font-size: 9px; letter-spacing: .12em; }
 .boot-topline { border-bottom: 1px solid var(--line); padding-bottom: 16px; }
 .boot-heading { display: flex; align-items: center; gap: 30px; padding-block: 37px 33px; border-bottom: 1px solid var(--line); }
+.boot-heading > div { min-width: 0; }
 .boot-emblem { font-size: 52px; letter-spacing: -.1em; white-space: nowrap; }
 .boot-heading p { font: inherit; font-size: 9px; letter-spacing: .15em; color: var(--muted); margin-bottom: 11px; }
-.boot-heading h2 { font: inherit; font-weight: bold; font-size: clamp(29px, 5.6vw, 60px); letter-spacing: .045em; line-height: 1; color: var(--text); text-shadow: 0 0 25px transparent; }
+.boot-heading h2 { font: inherit; font-weight: bold; font-size: clamp(29px, 5.6vw, 60px); letter-spacing: .045em; line-height: 1.12; color: var(--text); text-shadow: 0 0 25px transparent; }
 .boot-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: center; gap: 25px; margin-block: 28px; min-height: 245px; }
 .boot-output { color: var(--accent); font: inherit; font-size: 11px; line-height: 1.9; white-space: pre-wrap; min-height: 232px; }
 .boot-art { width: 100%; max-width: 100%; }
