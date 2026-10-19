@@ -28,7 +28,7 @@ Ghidra has been free since 2019. IDA, Hopper, binwalk, Wireshark - none of this 
 
 Agents remove the friction. Not completely - the hands-on reviews are fair that it's not a magic button yet - but the trend line is obvious. What took a specialist weeks takes a curious person with a coding agent an afternoon. And the next model release makes it better without anyone changing a line of REA.
 
-So my main takeaway is simple: this is going to be a cybersecurity nightmare. Every closed binary, every "proprietary" protocol, every license check, every hardcoded credential that was protected mostly by being annoying to find - assume it's findable now. Security through obscurity was never a real control. Now it isn't even a speed bump.
+My main takeaway is that this is going to be a cybersecurity nightmare. Every closed binary, every "proprietary" protocol, every license check, every hardcoded credential that was protected mostly by being annoying to find - assume it's findable now. Security through obscurity was never a real control. Now it isn't even a speed bump.
 
 ---
 
@@ -67,7 +67,7 @@ For vendors: assume your customers' adversaries already have your binary decompi
 
 ## Where I've landed
 
-The interesting question isn't whether this tool is good or bad. The cost of understanding software just dropped by orders of magnitude, and every assumption built on that cost being high needs another look. In industrial environments those assumptions are baked into equipment that will be on the floor for another 15 years.
+The cost of understanding software just dropped by orders of magnitude, and every assumption built on that cost being high needs another look. In industrial environments those assumptions are baked into equipment that will be on the floor for another 15 years.
 
 So go look at your own stack before someone else does.
 
