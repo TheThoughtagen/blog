@@ -578,7 +578,7 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   const feed = await readFile(join(outputDir, 'feed.xml'), 'utf8');
   const sitemap = await readFile(join(outputDir, 'sitemap.xml'), 'utf8');
   const data = JSON.parse(await readFile(join(outputDir, 'assets/data.json'), 'utf8'));
-  assert.match(home, /no published field notes yet/i);
+  assert.match(home, /no published notes yet/i);
   assert.match(home, /class="author-portrait card-portrait"/);
   assert.match(home, /<img class="card-headshot" src="\/assets\/patrick-mannion-headshot\.png"/);
   assert.match(about, /class="about-portrait card-portrait"/);
@@ -589,7 +589,7 @@ test('build supports an empty notebook without note URLs, feed items, or heading
   assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/card\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/patrickmannion\.dev\/card\/qr\/<\/loc>/);
   assert.match(lab, /Ignition tools/);
-  assert.match(about, /About Patrick/);
+  assert.match(about, /<title>About \| Patrick Mannion<\/title>/);
   assert.match(connect, /Say hello/);
   assert.match(card, /GitHub @TheThoughtagen/);
   assert.ok(card.indexOf('Download vCard') < card.indexOf('GitHub @TheThoughtagen'), 'vCard download is the first primary card CTA');

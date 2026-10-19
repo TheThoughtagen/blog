@@ -192,7 +192,7 @@ $$('dialog:not(#boot-dialog)').forEach((dialog) => {
 });
 
 const commands = [
-  { title: ':home', description: 'Return to the notebook', action: () => { location.href = '/'; } },
+  { title: ':home', description: 'Return to Patrick Mannion’s homepage', action: () => { location.href = '/'; } },
   { title: ':work', description: 'Whiskey House projects and open-source tools', action: () => { location.href = '/work/'; } },
   { title: ':demos', description: 'Watch the project walkthroughs', action: () => { location.href = '/work/#demos'; } },
   { title: ':lab', description: 'Visit the workbench', action: () => { location.href = '/lab/'; } },
@@ -220,7 +220,7 @@ function renderPalette() {
   if (query.startsWith(':')) matches = commands.filter((command) => `${command.title} ${command.description}`.toLowerCase().includes(query.slice(1)));
   else if (data) matches = [...data.articles, ...data.externalPosts, ...(data.ignitionTools || []).map((tool) => ({ ...tool, title: tool.name, url: tool.documentationUrl, category: 'Ignition tool', source: 'Documentation', tags: [tool.repositoryUrl] })), ...(data.projects || [])].filter((note) => (note.searchText || [note.title, note.description, note.category, ...(note.tags || [])].join(' ')).toLowerCase().includes(query)).map((note) => ({ title: note.title, description: `${note.category} / ${note.source || (note.url.startsWith('/work/') ? 'Project' : 'Field note')}`, url: note.url, external: Boolean(note.source) }));
   else {
-    const paragraph = document.createElement('p'); paragraph.className = 'command-empty'; paragraph.textContent = dataError ? 'Search could not load. The notebook is still available below.' : 'Loading the notebook index...'; results.append(paragraph);
+    const paragraph = document.createElement('p'); paragraph.className = 'command-empty'; paragraph.textContent = dataError ? 'Search could not load. You can still browse the site.' : 'Loading notes and projects...'; results.append(paragraph);
     if (dataError) { const retry = document.createElement('button'); retry.className = 'command-result'; retry.textContent = 'Retry search connection'; retry.addEventListener('click', async () => { dataPromise = null; dataError = false; const pending = loadData(); renderPalette(); await pending; if (commandDialog.open && !input.value.trim().startsWith(':')) renderPalette(); }); results.append(retry); }
     return;
   }

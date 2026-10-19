@@ -1,6 +1,6 @@
-# FIELDNOTES
+# Patrick Mannion
 
-A static engineering notebook built from Markdown, with RSS, local search, keyboard navigation, three color themes, and optional public GitHub activity/releases. Requires Node.js 24 or newer.
+A personal portfolio for industrial software, connected plant projects, Ignition tools, and engineering notes. Built from Markdown, with RSS, local search, keyboard navigation, three color themes, and public GitHub activity/releases. Requires Node.js 24 or newer.
 
 Live site: https://patrickmannion.dev/
 
@@ -61,7 +61,7 @@ On Work & demos, `j` and `k` scroll through the long page. The section links jum
 **Configuration**
 Edit `site.config.mjs`:
 
-- `name`, `author`, and `description`: notebook branding, article byline, and metadata. The author is Patrick Mannion. `bio.short` appears in the author card and About header; `bio.paragraphs` holds the longer bio.
+- `name`, `author`, and `description`: site branding, article byline, and metadata. The site name and author are Patrick Mannion. `bio.short` appears in the author card and About header; `bio.paragraphs` holds the longer bio.
 - `siteUrl`: public origin, such as `https://notes.example.com/`, with no subpath. The build-time `SITE_URL` environment variable overrides it. Set it for canonical/OG URLs, absolute RSS links, and the sitemap. Without it, previews omit canonical URLs and the sitemap and use relative RSS identifiers.
 - `github.username`: GitHub username only, not a profile URL. Activity includes commits, PRs, reviews, comments, stars, forks, and other supported public events across repositories. Home shows five events; Lab shows fifteen from the latest 100 available events. This is GitHub's recent event window, not an all-time archive. No token is shipped to visitors.
 - `github.repositories`: up to six `owner/repo` strings, for example `['example-owner/project']`, not repository URLs. These drive releases independently of the username. With only a username, the deployment discovers all owned public repositories and paginates their published releases; older releases are included. The Lab also displays the latest 30 public commits found by GitHub commit search across repositories, separately from stars and other activity. Empty settings show an unconfigured state.

@@ -1,17 +1,17 @@
 // Profile URLs stay blank until confirmed; only configured profiles appear on the site.
 // Enable membership only when its destination URL is configured.
 export const site = {
-  name: 'FIELDNOTES',
+  name: 'Patrick Mannion',
   author: 'Patrick Mannion',
   bio: {
     short: 'I build connected production, warehouse, and customer software at Whiskey House, and open-source tools for Ignition. This is where I share the work and the notes behind it.',
     paragraphs: [
       'At Whiskey House, I build connections between MES, warehouse operations, customer access, and industrial data. Configurable recipes, API and event integrations, and typed plant models let that work adapt to different workflows. I also build Ignition tools for gateway access, editing, linting, and version control.',
-      'The questions behind this notebook are practical: how do you tell whether production data is fresh? What happens when an integration drops a message? Can someone else diagnose a failure while the usual expert is away?',
-      'You’ll find notes on those questions, alongside experiments with AI and the decisions involved in running a technical team. I want each piece to explain a specific problem, the options, and what still needs testing.',
+      'The questions I work through are practical: how do you tell whether production data is fresh? What happens when an integration drops a message? Can someone else diagnose a failure while the usual expert is away?',
+      'You’ll find project demos and notes on those questions, alongside experiments with AI and the decisions involved in running a technical team. I want each piece to explain a specific problem, the options, and what still needs testing.',
     ],
   },
-  description: 'Patrick Mannion’s notebook on industrial software, reliable integrations, AI experiments, and leading technical teams.',
+  description: 'Patrick Mannion’s work in industrial software, connected plants, and Ignition tooling, with project demos and engineering notes.',
   email: 'patrick@cruciblesoftware.co',
   siteUrl: 'https://patrickmannion.dev/',
   github: { username: 'TheThoughtagen', repositories: [] },

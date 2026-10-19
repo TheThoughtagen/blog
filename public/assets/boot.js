@@ -10,17 +10,17 @@
   let video;
   let playbackRun = 0;
   const diagnostics = [
-    'FIELD OS v1.0 / PERSONAL TERMINAL',
+    'PATRICK MANNION / PERSONAL TERMINAL',
     'Copyright (c) 2026. Stay curious.',
     '',
     '> Initializing phosphor display........ OK',
     '> Checking human-machine interface.... OK',
-    '> Mounting /dev/fieldnotes............ OK',
+    '> Mounting /dev/projects............. OK',
     '> Loading industrial software........ OK',
     '> Loading people, systems & ideas.... OK',
     '> Establishing an open channel....... OK',
     '',
-    'ACCESS GRANTED. WELCOME TO THE NOTEBOOK.',
+    'ACCESS GRANTED. WELCOME.',
   ].join('\n');
   function cleanup() {
     cancelAnimationFrame(frame); clearTimeout(deadline);
@@ -41,7 +41,7 @@
       dialog = document.createElement('dialog'); dialog.id = 'boot-dialog';
       dialog.setAttribute('aria-labelledby', 'boot-heading');
       dialog.setAttribute('aria-describedby', 'boot-description');
-      dialog.innerHTML = `<div class="boot-shell"><div class="boot-topline"><span>FIELD STATION 001</span><span>LOCAL BOOT SIMULATION</span></div><div class="boot-heading"><span class="boot-emblem" aria-hidden="true">[ f_ ]</span><div><p>PERSONAL INFORMATION TERMINAL</p><h2 id="boot-heading">FIELDNOTES</h2></div></div><p id="boot-description" class="boot-sr-only">A decorative terminal startup showing Patrick walking to a retro computer, typing, and giving a thumbs-up. The notebook is ready. Skip at any time with Enter, Escape, or the skip button.</p><div class="boot-content"><pre class="boot-output" aria-hidden="true"></pre><div class="boot-art" aria-hidden="true"></div></div><div class="boot-meter" aria-hidden="true"><span class="boot-bar"></span><span class="boot-percent">0%</span></div><div class="boot-access" aria-hidden="true">INITIALIZING TERMINAL<span>_</span></div><div class="boot-controls"><label><input type="checkbox" id="boot-skip-preference"> Skip intro next time</label><button type="button" class="boot-skip">Skip intro <span>[ ENTER ]</span></button></div><div class="boot-bottomline"><span>NO VAULT REQUIRED.</span><span>PEOPLE FIRST. SYSTEMS SECOND.</span></div></div>`;
+      dialog.innerHTML = `<div class="boot-shell"><div class="boot-topline"><span>PM / ENGINEERING &amp; SOFTWARE</span><span>LOCAL BOOT SIMULATION</span></div><div class="boot-heading"><span class="boot-emblem" aria-hidden="true">[ PM_ ]</span><div><p>PERSONAL INFORMATION TERMINAL</p><h2 id="boot-heading">Patrick Mannion</h2></div></div><p id="boot-description" class="boot-sr-only">A decorative terminal startup showing Patrick walking to a retro computer, typing, and giving a thumbs-up. The site is ready. Skip at any time with Enter, Escape, or the skip button.</p><div class="boot-content"><pre class="boot-output" aria-hidden="true"></pre><div class="boot-art" aria-hidden="true"></div></div><div class="boot-meter" aria-hidden="true"><span class="boot-bar"></span><span class="boot-percent">0%</span></div><div class="boot-access" aria-hidden="true">INITIALIZING TERMINAL<span>_</span></div><div class="boot-controls"><label><input type="checkbox" id="boot-skip-preference"> Skip intro next time</label><button type="button" class="boot-skip">Skip intro <span>[ ENTER ]</span></button></div><div class="boot-bottomline"><span>NO VAULT REQUIRED.</span><span>PEOPLE FIRST. SYSTEMS SECOND.</span></div></div>`;
       const mascotTemplate = document.querySelector('#mascot-template');
       if (mascotTemplate) dialog.querySelector('.boot-art').append(mascotTemplate.content.cloneNode(true));
       video = document.createElement('video');
@@ -73,7 +73,7 @@
     const percent = dialog.querySelector('.boot-percent');
     const access = dialog.querySelector('.boot-access');
     dialog.querySelector('#boot-skip-preference').checked = preference('skip-intro');
-    dialog.querySelector('.boot-skip').innerHTML = still ? 'Enter the notebook <span>[ ENTER ]</span>' : 'Skip intro <span>[ ENTER ]</span>';
+    dialog.querySelector('.boot-skip').innerHTML = still ? 'Enter the site <span>[ ENTER ]</span>' : 'Skip intro <span>[ ENTER ]</span>';
     dialog.classList.toggle('boot-still', still);
     dialog.classList.remove('boot-video-playing');
     output.textContent = still ? diagnostics : '';
