@@ -1,13 +1,13 @@
 ---
 title: Coming up for air - a reflection of the last 3 or so years of learning & building.  
 description: A few notes on what I've been building, and getting back to writing about it.
-date: 2026-10-22
+date: 2026-10-29
 category: Development
 tags:
   - Developer tools
   - Ignition
   - FIELDNOTES
-draft: true
+draft: false
 ---
 
 As I near my 3-year anniversary with Whiskey House - I've been intentional about stepping away from the keyboard, closing the terminal, and trying to be reflective and open about sharing what we've been building. 
@@ -41,6 +41,8 @@ Just to list a handful of things we've built in that time... (show and tell to c
 - A GRC and framework to reach compliance for ISO 27001 and 42001 next year
 - An agnetic project management OS, because I don't have time to properly wear the project manager hat..
 - ... and more I'm sure i'm forgetting 🤷🏼‍♂️
+
+[![A frame from the Customer Portal launch film](images/customer-portal.jpg "The Customer Portal launch film")](/work/#customer-portal)
 
 I love Whiskey House - the people and the mission. We have an amazing leadership group backing us and placing their trust in us. Like any startup, its been intense and has had plenty of ups and downs. But I've grown more than I could have imagined and wouldn't trade a moment. 
 
