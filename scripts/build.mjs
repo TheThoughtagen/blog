@@ -631,7 +631,8 @@ function preflightArticleAssets(destination, articles) {
   }
 }
 
-export async function writeSite({ rootDir, outputDir, site, articles, links }) {
+export async function writeSite({ rootDir, outputDir, site, articles, links, deploymentRevision = '' }) {
+  if (deploymentRevision && !/^[a-f0-9]{40}$/.test(deploymentRevision)) throw new Error('DEPLOY_REVISION must be a full Git commit SHA.');
   const destination = await validateOutputDestination(rootDir, outputDir);
   preflightArticleAssets(destination, articles);
   const publicDir = join(rootDir, 'public');
@@ -667,7 +668,8 @@ export async function writeSite({ rootDir, outputDir, site, articles, links }) {
   const pages = [['index.html', home(site, articles, links)], ['work/index.html', shell(site, { title: 'Work & demos', description: 'Whiskey House production and warehouse software, a connected plant graph and 3D model, and recorded Ignition workflows by Patrick Mannion.', path: '/work/', active: 'work', body: renderWorkPage() })], ['lab/index.html', labPage(site)], ['about/index.html', aboutPage(site)], ['connect/index.html', connectPage(site)], ['card/index.html', cardPage(site)], ['card/qr/index.html', await cardQrPage(site)], ['404.html', shell(site, { title: 'Signal lost', active: '404', body: '<div class="wrap lost-page"><div class="overline">ERROR 404 / SIGNAL LOST</div><h1>Nothing on<br>this frequency<span class="accent">.</span></h1><p>This note may have moved, or the address might be mistyped.</p><a class="button primary" href="/">Return to the notebook &#8594;</a></div>' })], ...articles.map((article, index) => [`notes/${article.slug}/index.html`, articlePage(site, article, index, articles)]), ...archives.map((archive) => [`tags/${archive.directorySlug}/index.html`, tagPage(site, archive)])];
   for (const [path, html] of pages) {
     await mkdir(resolve(destination, path, '..'), { recursive: true });
-    await writeFile(join(destination, path), html.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`));
+    const stamped = deploymentRevision ? html.replace('</head>', `<meta name="deployment-revision" content="${deploymentRevision}"></head>`) : html;
+    await writeFile(join(destination, path), stamped.replace(/((?:src|href)="\/assets\/[^"?]+\.(?:js|css))"/g, `$1?v=${version}"`));
   }
   for (const article of articles) {
     const noteDir = join(destination, 'notes', article.slug);
@@ -689,6 +691,7 @@ export async function build({
   rootDir = projectRoot,
   contentDir = join(rootDir, 'content', 'posts'),
   outputDir = join(rootDir, 'dist'),
+  deploymentRevision = process.env.DEPLOY_REVISION || '',
 } = {}) {
   const site = structuredClone(sourceSite);
   if (process.env.SITE_URL) site.siteUrl = process.env.SITE_URL;
@@ -699,7 +702,7 @@ export async function build({
   await validateCortexGraph();
   await validateCortexScene();
   if (site.siteUrl) site.siteUrl = new URL(site.siteUrl).origin + '/';
-  const result = await writeSite({ rootDir, outputDir, site, articles, links: externalPosts });
+  const result = await writeSite({ rootDir, outputDir, site, articles, links: externalPosts, deploymentRevision });
   console.log(`Built ${result.pageCount} pages and ${result.noteCount} notes in ${outputDir}. ${site.siteUrl ? `Site: ${site.siteUrl}` : 'Set SITE_URL when publishing to finalize feed and canonical URLs.'}`);
 }
 
