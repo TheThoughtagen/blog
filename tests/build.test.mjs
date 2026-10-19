@@ -822,8 +822,8 @@ test('unconfigured booking and email never collect information or claim success'
   const { config } = fixture();
   const markup = renderChannels(config);
   assert.match(markup, /Scheduling opens soon/);
-  assert.match(markup, /Email subscriptions are not open yet/);
-  assert.match(markup, /type="email" disabled/);
+  assert.match(markup, /Email updates aren’t set up yet/);
+  assert.doesNotMatch(markup, /type="email"/);
   assert.doesNotMatch(markup, /<form|action=|mailto:/);
   assert.match(markup, /href="\/feed.xml"/);
 });
