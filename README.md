@@ -28,6 +28,8 @@ The server builds once at startup and serves `http://127.0.0.1:4173`. Override t
 
 **Portfolio And Demos**
 
+The homepage leads with the original customer portal film, followed by visual links into the connected graph, native 3D/history viewer, and Ignition recordings. The bio and writing follow the work. The film loads only on request, and the homepage uses static previews rather than loading the interactive graph or 3D renderer. The 3D preview is captured from the public fictional scene; the terminal preview shows the original CLI recording. The landing film poster is a frame at 18 seconds from the existing portal film. Homepage `j`/`k` shortcuts scroll through these sections.
+
 `/work/` contains the Whiskey House project write-ups, customer portal film, four Forge Cortex walkthroughs, and four Ignition terminal recordings. Edit their copy and links in `content/work.mjs`; `scripts/portfolio.mjs` renders the page and homepage teaser. `content/work-evidence.json` pins the original recordings by SHA-256. The videos use native playback controls and load on request.
 
 The graph has 7,618 nodes and 14,165 relationships connecting equipment, historian tags, documents, MES, CMMS, electrical wiring, and process flow. Its records, properties, and connections are randomized demonstration data. `scripts/randomize-cortex-graph.mjs` enforces the public schema and regenerates this data; the build checks its hashes and graph poster. Do not replace these assets with an operational export.
@@ -46,6 +48,7 @@ With the preview server running, the portfolio browser checks follow the existin
 
 ```sh
 playwright-cli -s=portfolio open http://127.0.0.1:4173/work/ --browser=chrome
+playwright-cli -s=portfolio run-code --filename=tests/landing.browser.js
 playwright-cli -s=portfolio run-code --filename=tests/portfolio-shell.browser.js
 playwright-cli -s=portfolio run-code --filename=tests/portfolio.browser.js
 playwright-cli -s=portfolio run-code --filename=tests/portfolio-regressions.browser.js

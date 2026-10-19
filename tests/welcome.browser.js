@@ -10,6 +10,7 @@ async (page) => {
   await page.locator('#boot-dialog[open]').waitFor();
   check(await page.locator('[data-welcome] video').getAttribute('src') === null, 'Video waits for intro before downloading');
   await page.keyboard.press('Escape');
+  await page.locator('[data-welcome]').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector('[data-welcome] video').currentTime > 0.1);
   check(await page.locator('[data-welcome] video').evaluate(v => v.muted && !v.loop), 'Silent playback does not loop');
   await page.getByRole('button', { name: 'Pause animation', exact: true }).click();
