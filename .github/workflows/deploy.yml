@@ -3,6 +3,11 @@ name: Deploy site
 on:
   push:
     branches: [main]
+  # Daily rebuild publishes posts whose date has arrived. 13:17 UTC is 7:17 MDT / 6:17 MST (off the busy top of the hour),
+  # early enough that cron delays still land before 8:30 MT social posts.
+  schedule:
+    - cron: '17 13 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,6 +18,8 @@ concurrency:
 
 jobs:
   deploy:
+    # Manual runs can target any branch; only main may publish to production.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

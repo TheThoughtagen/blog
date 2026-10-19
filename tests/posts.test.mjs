@@ -8,6 +8,7 @@ import {
   loadPosts,
   publishedPosts,
   selectFeatured,
+  siteToday,
   tagSlug,
 } from '../scripts/posts.mjs';
 
@@ -433,4 +434,28 @@ test('loadPosts rejects a rendered repeated title after an invalid backtick fenc
     loadPosts({ contentDir, schemaPath }),
     /title.*h1|h1.*title/i,
   );
+});
+
+test('publishedPosts holds future-dated posts until their date', async () => {
+  const contentDir = await postTree();
+  await addPost(contentDir, 'out-now', source({ date: '2026-10-19' }));
+  await addPost(contentDir, 'goes-out-tuesday', source({ date: '2026-10-20' }));
+  const posts = await loadPosts({ contentDir, schemaPath });
+  assert.deepEqual(publishedPosts(posts, '2026-10-19').map(post => post.slug), ['out-now']);
+  assert.deepEqual(publishedPosts(posts, '2026-10-20').map(post => post.slug), ['goes-out-tuesday', 'out-now']);
+  assert.equal(selectFeatured(posts, '2026-10-19').slug, 'out-now');
+});
+
+test('loadPosts still validates scheduled posts so problems surface at merge time', async () => {
+  const contentDir = await postTree();
+  await addPost(contentDir, 'scheduled-remote', source({
+    date: '2999-01-01',
+    body: '## Image\n\n![Hosted elsewhere](https://example.com/image.png)\n',
+  }));
+  await assert.rejects(loadPosts({ contentDir, schemaPath }), /image\.remote-disabled/);
+});
+
+test('siteToday uses the Mountain Time calendar date', () => {
+  assert.equal(siteToday(new Date('2026-10-20T05:30:00Z')), '2026-10-19');
+  assert.equal(siteToday(new Date('2026-10-20T13:00:00Z')), '2026-10-20');
 });

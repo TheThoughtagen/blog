@@ -111,7 +111,7 @@ Every post starts with YAML frontmatter. `frontmatter.schema.json` is the source
 
 - `title`: nonempty string used as the page title. Do not repeat it as an H1 in the Markdown body.
 - `description`: nonempty summary used in listings, search, RSS, and metadata.
-- `date`: a real calendar date in `YYYY-MM-DD` form.
+- `date`: a real calendar date in `YYYY-MM-DD` form. A non-draft post with a future date is scheduled: it is fully validated on every build but stays out of every public artifact until the first build on or after that date in Mountain Time.
 - `category`: one of `Industrial software`, `Development`, `Leadership`, or `AI & ML`.
 
 The optional fields are:
@@ -178,7 +178,7 @@ Use the actual post URL and publication date. Crossposts appear on the home page
 **Continuous Deployment**
 Pull requests run `.github/workflows/check.yml` to validate tests, the build, and publishable file types before review.
 
-Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → refresh public GitHub stats → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages → verify `patrickmannion.dev`. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
+Every push to `main`, including a merged pull request, runs `.github/workflows/deploy.yml`: Node.js 24 → `npm test` → `npm run build` → refresh public GitHub stats → `node scripts/check-dist.mjs` → publish `dist/` to Cloudflare Pages → verify `patrickmannion.dev`. A daily scheduled run at 13:17 UTC (7:17 MDT / 6:17 MST) rebuilds `main` so scheduled posts go live on their date without a push; it can also be started by hand from the Actions tab. GitHub disables scheduled workflows in public repositories after 60 days without repository activity, so check the workflow is still enabled before scheduling a post further out than that. Scheduled posts are kept off the site, not secret: their Markdown is readable in this public repository once merged. Pull request branches do not deploy. Deployment runs are serialized so a running publish can finish before another begins.
 
 `patrickmannion.dev` is attached to the `patrickmannion` Pages project and receives its `main` production deployments. The build stamps every HTML page with `DEPLOY_REVISION`, set to the workflow's commit SHA. After publishing, `scripts/verify-production.mjs` checks that the custom domain's homepage and `/work/` serve that revision, and that the site CSS, main JavaScript, graph, and 3D scripts match this build. The check uses the custom domain directly, rejects redirects and wrong content types, and retries up to 12 times for propagation. A stale or unreachable domain fails the workflow even if the upload succeeded.
 
