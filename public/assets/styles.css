@@ -248,6 +248,7 @@
   .article-body td { color: var(--text); font-size: 14px; }
   .article-body figure { max-width: 100%; margin: 30px 0; }
   .article-body figure img, .article-body > img { display: block; width: auto; max-width: 100%; height: auto; margin-inline: auto; }
+  .article-body video { display: block; width: 100%; height: auto; margin: 30px 0; border: 1px solid var(--line); background: #000; }
   .article-body figcaption { margin-top: 10px; color: var(--subtle); font: 9px/1.7 var(--mono); text-align: center; }
   .article-body hr { height: 0; margin: 52px 0; border: 0; border-top: 1px dashed var(--line); }
   .article-body iframe { display: block; width: 100%; max-width: 100%; margin: 25px 0; border: 1px solid var(--line); }
