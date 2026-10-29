@@ -416,6 +416,27 @@ Unpublished phrase.
   }
 });
 
+test('build plays a local post video and copies its bytes', async () => {
+  const rootDir = await createBuildRoot();
+  const contentDir = join(rootDir, 'posts');
+  const outputDir = join(rootDir, 'site');
+  const bytes = Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]);
+  await mkdir(join(contentDir, 'video-note/images'), { recursive: true });
+  await writeFile(join(contentDir, 'video-note/index.md'), `---
+title: "Video note"
+description: "Local video."
+date: "2026-09-15"
+category: "Development"
+---
+![Portal film](images/portal.mp4)
+`);
+  await writeFile(join(contentDir, 'video-note/images/portal.mp4'), bytes);
+  await build({ rootDir, contentDir, outputDir });
+  const page = await readFile(join(outputDir, 'notes/video-note/index.html'), 'utf8');
+  assert.match(page, /<video aria-label="Portal film" controls playsinline preload="metadata" src="images\/portal.mp4">/);
+  assert.deepEqual(await readFile(join(outputDir, 'notes/video-note/images/portal.mp4')), bytes);
+});
+
 test('build copies verified local asset bytes and rejects missing or traversing assets before clearing output', async () => {
   const rootDir = await createBuildRoot();
   const contentDir = join(rootDir, 'posts');

@@ -42,7 +42,7 @@ Just to list a handful of things we've built in that time... (show and tell to c
 - An agnetic project management OS, because I don't have time to properly wear the project manager hat..
 - ... and more I'm sure i'm forgetting 🤷🏼‍♂️
 
-[![A frame from the Customer Portal launch film](images/customer-portal.jpg "The Customer Portal launch film")](/work/#customer-portal)
+![The Customer Portal launch film](images/customer-portal.mp4)
 
 I love Whiskey House - the people and the mission. We have an amazing leadership group backing us and placing their trust in us. Like any startup, its been intense and has had plenty of ups and downs. But I've grown more than I could have imagined and wouldn't trade a moment. 
 
